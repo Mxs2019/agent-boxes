@@ -1,0 +1,44 @@
+node_modules/
+.wrangler/
+dist/
+coverage/
+.build/
+DerivedData/
+.DS_Store
+*.log
+.dev.vars*
+!.dev.vars.example
+.env*
+!.env.example
+
+# Local editor and agent state
+.codex/
+.claude/
+.cursor/
+.idea/
+.vscode/
+*.swp
+
+# Xcode user state and local Swift packages
+xcuserdata/
+*.xcuserstate
+.swiftpm/
+
+# Local databases
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+
+# Credentials and signing material
+.npmrc
+!/.npmrc
+.netrc
+*.key
+*.pem
+*.p8
+*.p12
+*.cer
+*.mobileprovision
+*.provisionprofile
+Secrets.xcconfig
+Local.xcconfig
