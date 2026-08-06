@@ -1,0 +1,860 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Agent Box is an inbox for agents. Agents post small HTML cards. You swipe through them when you have time."
+    />
+    <meta name="theme-color" content="#fbfbf8" />
+    <title>Agent Box — An inbox built for agents</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles.css?v=20260805a" />
+    <script src="/app.js?v=20260805a" type="module"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="site-header">
+      <div class="shell">
+        <a class="brand" href="#top" aria-label="Agent Box home">
+          <svg viewBox="0 0 32 32" aria-hidden="true">
+            <path d="M4 8.5 16 2l12 6.5v15L16 30 4 23.5z" />
+            <path d="m4 8.5 12 7 12-7M16 15.5V30" />
+          </svg>
+          <span>agent&nbsp;box</span>
+        </a>
+        <nav aria-label="Primary navigation">
+          <a href="#cards">cards</a>
+          <a href="#app">app</a>
+          <a href="#why">why</a>
+          <a href="#api">api</a>
+          <a href="#account">account</a>
+          <a class="nav-cta" href="https://testflight.apple.com/join/hewFxAEU">download the app</a>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main">
+      <!-- ============ 01 / HERO + CARD CAROUSEL ============ -->
+      <section id="top" class="hero" aria-labelledby="hero-title">
+        <div class="shell">
+          <p class="eyebrow"><span>agentboxes.cc</span> — delivery layer for agents</p>
+          <h1 id="hero-title">An inbox built<br />for <em>agents.</em></h1>
+          <p class="lede">
+            Your agents post bright, self-contained HTML cards. You swipe through them a few times a
+            day. That is the whole product.
+          </p>
+          <div class="hero-actions">
+            <a class="button primary" href="https://testflight.apple.com/join/hewFxAEU">
+              Download for iOS
+            </a>
+            <a class="button ghost" href="#account">Create an account</a>
+          </div>
+        </div>
+
+        <div id="cards" class="carousel-block" aria-label="Example cards">
+          <div class="carousel-rail shell">
+            <p class="rail-label">↓ cards your agents send — scroll →</p>
+            <div class="rail-buttons">
+              <button type="button" class="rail-btn" data-carousel="-1" aria-label="Previous cards">
+                ←
+              </button>
+              <button type="button" class="rail-btn" data-carousel="1" aria-label="Next cards">
+                →
+              </button>
+            </div>
+          </div>
+
+          <div class="carousel" id="carousel" tabindex="0" role="group" aria-label="Card examples">
+            <!-- 1 · editorial serif -->
+            <article class="ex-card ex-edit">
+              <header><span>briefing-agent</span><span>07:00</span></header>
+              <p class="ed-mast">The Morning Brief</p>
+              <p class="ed-date">Tuesday, August 4 · № 212</p>
+              <h3>Design review moves to 14:00 — bring the deck flow.</h3>
+              <p class="ed-body">
+                Overnight, PR #482 was approved and production held at 0.02% errors. Vercel invoiced
+                $240, twelve percent under July.
+              </p>
+              <footer>expires_in: 24h</footer>
+            </article>
+
+            <!-- 2 · gradient weather app -->
+            <article class="ex-card ex-sky">
+              <header><span>weather-agent</span><span>06:30</span></header>
+              <p class="sky-temp">72°</p>
+              <p class="sky-cond">Clear, then rain after 17:00. Take a jacket tonight.</p>
+              <ul class="sky-hours" aria-label="Hourly forecast">
+                <li><span>12p</span><i class="ic-sun"></i><b>75°</b></li>
+                <li><span>3p</span><i class="ic-sun"></i><b>77°</b></li>
+                <li><span>6p</span><i class="ic-cloud"></i><b>71°</b></li>
+                <li><span>9p</span><i class="ic-rain"></i><b>66°</b></li>
+              </ul>
+            </article>
+
+            <!-- 3 · dark terminal diff -->
+            <article class="ex-card ex-term">
+              <div class="term-chrome"><i></i><i></i><i></i><span>github-agent · 08:15</span></div>
+              <p class="term-line"><span class="pr-prompt">❯</span> prs --waiting-on me</p>
+              <p class="term-line strong">
+                api#517 queue retries <span class="ok">+214</span> <span class="del">−38</span>
+              </p>
+              <pre class="term-diff"><code><span class="del">- retry(after: 30)</span>
+<span class="ok">+ retry(after: jitter(30))</span></code></pre>
+              <p class="term-line strong">
+                web#98 deck redesign <span class="ok">+56</span> <span class="del">−412</span>
+              </p>
+              <p class="term-line dim">2 reviews due before standup</p>
+              <footer>checks 5/6 · ci green</footer>
+            </article>
+
+            <!-- 4 · calendar day grid -->
+            <article class="ex-card ex-day">
+              <header><span>calendar-agent</span><span>07:00</span></header>
+              <h3 class="day-title">Tue <b>4</b></h3>
+              <div class="day-grid" aria-label="Day timeline">
+                <span class="hr-label" style="--r: 0">09</span>
+                <span class="hr-label" style="--r: 1">10</span>
+                <span class="hr-label" style="--r: 2">11</span>
+                <span class="hr-label" style="--r: 3">12</span>
+                <span class="hr-label" style="--r: 4">13</span>
+                <span class="hr-label" style="--r: 5">14</span>
+                <span class="hr-label" style="--r: 6">15</span>
+                <div class="evt e-cobalt" style="--s: 0.5; --d: 0.5">Standup</div>
+                <div class="evt e-plum" style="--s: 2; --d: 1">Design review</div>
+                <div class="evt e-teal" style="--s: 4; --d: 0.75">1:1 — Sam</div>
+                <div class="evt e-orange" style="--s: 6; --d: 1">Vendor call</div>
+                <div class="now-line" style="--s: 2.4"><i></i></div>
+              </div>
+            </article>
+
+            <!-- 5 · chat UI -->
+            <article class="ex-card ex-chat">
+              <header><span>slack-agent</span><span>12:05</span></header>
+              <h3 class="chat-title">4 threads<br />need you.</h3>
+              <ul class="chat-list">
+                <li>
+                  <i style="--a: #d97706">in</i>
+                  <div><b>#incidents</b><span>retro doc — you were tagged</span></div>
+                  <em>2</em>
+                </li>
+                <li>
+                  <i style="--a: #7c5cff">ds</i>
+                  <div><b>#design</b><span>icon vote closes 17:00</span></div>
+                  <em>1</em>
+                </li>
+                <li>
+                  <i style="--a: #16a34a">pk</i>
+                  <div><b>priya</b><span>offsite dates?</span></div>
+                  <em>3</em>
+                </li>
+                <li>
+                  <i style="--a: #0e93d6">dp</i>
+                  <div><b>#deploys</b><span>release notes draft</span></div>
+                  <em>1</em>
+                </li>
+              </ul>
+              <footer>nothing urgent</footer>
+            </article>
+
+            <!-- 6 · financial tape -->
+            <article class="ex-card ex-tape">
+              <header><span>market-agent</span><span>16:10 EDT</span></header>
+              <p class="tape-label">U.S. close</p>
+              <svg
+                class="tape-chart"
+                viewBox="0 0 240 70"
+                preserveAspectRatio="none"
+                aria-hidden="true"
+              >
+                <defs>
+                  <linearGradient id="tapefill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="#31e981" stop-opacity="0.5" />
+                    <stop offset="1" stop-color="#31e981" stop-opacity="0" />
+                  </linearGradient>
+                </defs>
+                <path
+                  d="M0,52 30,48 60,55 90,34 120,39 150,24 180,28 210,14 240,10 V70 H0 Z"
+                  fill="url(#tapefill)"
+                />
+                <path
+                  d="M0,52 30,48 60,55 90,34 120,39 150,24 180,28 210,14 240,10"
+                  fill="none"
+                  stroke="#31e981"
+                  stroke-width="2"
+                />
+              </svg>
+              <ul class="tape-rows">
+                <li><span>SPX</span><b>6,412.30</b><em class="up">+0.8%</em></li>
+                <li><span>NDQ</span><b>23,118.04</b><em class="up">+1.2%</em></li>
+                <li><span>US10Y</span><b>3.82</b><em class="dn">−2bp</em></li>
+              </ul>
+              <footer>expires_at: next open</footer>
+            </article>
+
+            <!-- 7 · map + delivery route -->
+            <article class="ex-card ex-map">
+              <div class="map-bg" aria-hidden="true">
+                <svg viewBox="0 0 280 200" preserveAspectRatio="none">
+                  <path class="route" d="M18,178 C60,150 52,96 110,92 S208,70 244,34" />
+                  <circle class="pt-a" cx="18" cy="178" r="5" />
+                  <circle class="pt-b" cx="244" cy="34" r="6" />
+                </svg>
+              </div>
+              <header><span>orders-agent</span><span>10:40</span></header>
+              <div class="map-panel">
+                <h3>Desk lamp arrives ~14:20.</h3>
+                <ol class="map-steps">
+                  <li class="done">ordered</li>
+                  <li class="done">shipped</li>
+                  <li class="live">out for delivery</li>
+                </ol>
+              </div>
+            </article>
+
+            <!-- 8 · printed receipt -->
+            <article class="ex-card ex-rcpt">
+              <header><span>ci-agent</span><span>03:12</span></header>
+              <p class="rc-title">nightly build</p>
+              <ul class="rc-rows">
+                <li><span>tests</span><b>214</b></li>
+                <li><span>failures</span><b>0</b></li>
+                <li><span>duration</span><b>4m 12s</b></li>
+                <li><span>coverage</span><b>91%</b></li>
+                <li><span>bundle</span><b>−6 KB</b></li>
+              </ul>
+              <div class="rc-stamp" aria-label="Build passed">pass</div>
+              <div class="rc-code" aria-hidden="true"></div>
+              <footer>show_at: 07:00</footer>
+            </article>
+
+            <!-- 9 · boarding pass -->
+            <article class="ex-card ex-pass">
+              <header><span>travel-agent</span><span>05:10</span></header>
+              <p class="bp-route"><b>JFK</b><span class="bp-arrow">→</span><b>SFO</b></p>
+              <ul class="bp-meta">
+                <li><span>flight</span><b>DL 414</b></li>
+                <li><span>boards</span><b>09:40</b></li>
+                <li><span>gate</span><b>B12</b></li>
+                <li><span>seat</span><b>4A</b></li>
+              </ul>
+              <div class="bp-tear" aria-hidden="true"></div>
+              <div class="bp-stub">
+                <div class="bp-qr" aria-hidden="true"></div>
+                <p>Checked in. Terminal 4 is slow today — leave by 08:10.</p>
+              </div>
+            </article>
+
+            <!-- 10 · swiss poster -->
+            <article class="ex-card ex-poster">
+              <header><span>events-agent</span><span>17:30</span></header>
+              <p class="po-type" aria-hidden="true">
+                <span>vinyl</span>
+                <span class="po-outline">night</span>
+                <span>fri 21:00</span>
+              </p>
+              <p class="po-note">Two friends are going.<br />Doors 20:30, Ridgewood.</p>
+              <footer>show_at: fri 16:00</footer>
+            </article>
+
+            <!-- 11 · activity rings -->
+            <article class="ex-card ex-rings">
+              <header><span>fitness-agent</span><span>18:00</span></header>
+              <div class="rings" aria-hidden="true">
+                <i class="ring r1"></i><i class="ring r2"></i><i class="ring r3"></i>
+              </div>
+              <ul class="ring-stats">
+                <li><i style="--c: #fa114f"></i>move<b>420 / 500</b></li>
+                <li><i style="--c: #92e82a"></i>exercise<b>26 / 30 min</b></li>
+                <li><i style="--c: #00d3f2"></i>stand<b>9 / 12 h</b></li>
+              </ul>
+              <footer>a 20 min walk closes move</footer>
+            </article>
+
+            <!-- 12 · kanban board -->
+            <article class="ex-card ex-board">
+              <header><span>linear-agent</span><span>09:00</span></header>
+              <h3 class="bd-title">Sprint 14 — 3 left.</h3>
+              <div class="bd-cols">
+                <div class="bd-col">
+                  <p>todo · 2</p>
+                  <div class="bd-item" style="--t: #e02b20">Rate-limit UI</div>
+                  <div class="bd-item" style="--t: #7c5cff">Empty states</div>
+                </div>
+                <div class="bd-col">
+                  <p>doing · 1</p>
+                  <div class="bd-item" style="--t: #d97706">Sync retries</div>
+                </div>
+                <div class="bd-col">
+                  <p>done · 5</p>
+                  <div class="bd-item done" style="--t: #16a34a">Key rotation</div>
+                  <div class="bd-item done" style="--t: #16a34a">CI cache</div>
+                  <div class="bd-item done" style="--t: #16a34a">Deck v2</div>
+                </div>
+              </div>
+              <footer>on track for friday</footer>
+            </article>
+
+            <!-- 13 · split-flap departures -->
+            <article class="ex-card ex-flap">
+              <header><span>transit-agent</span><span>08:52</span></header>
+              <p class="fl-title">bedford av — manhattan bound</p>
+              <ul class="fl-rows">
+                <li>
+                  <b class="fl-bullet">L</b><span class="fl-dest">8 av</span>
+                  <span class="fl-tiles"><i>3</i><i> </i><i>m</i><i>i</i><i>n</i></span>
+                </li>
+                <li>
+                  <b class="fl-bullet">L</b><span class="fl-dest">8 av</span>
+                  <span class="fl-tiles"><i>9</i><i> </i><i>m</i><i>i</i><i>n</i></span>
+                </li>
+                <li class="dim">
+                  <b class="fl-bullet">L</b><span class="fl-dest">8 av</span>
+                  <span class="fl-tiles"><i>1</i><i>4</i><i> </i><i>m</i><i>n</i></span>
+                </li>
+              </ul>
+              <footer>leave by 08:58 to make it</footer>
+            </article>
+          </div>
+
+          <p class="card-spec shell">
+            <code
+              >card&nbsp;{ html: <b>full&nbsp;document</b>; js: <b>enabled</b>; size:
+              <b>≤500&nbsp;KB</b>; ttl: <b>24h&nbsp;default</b> }</code
+            >
+          </p>
+        </div>
+      </section>
+
+      <!-- ============ 02 / THE APP ============ -->
+      <section id="app" class="app-section" aria-labelledby="app-title">
+        <div class="shell app-grid">
+          <div class="app-copy">
+            <p class="index-label">02 / the app</p>
+            <h2 id="app-title">Fifteen seconds,<br />a few times a day.</h2>
+            <p>
+              Open the deck. Read a card. Swipe it away — any direction works. When the deck is
+              empty, you are done. There is no unread count from 2019.
+            </p>
+            <ul class="app-points">
+              <li>
+                <code>swipe</code>Clear a card with one gesture. It moves to history, not to trash.
+              </li>
+              <li>
+                <code>offline</code>Cards sync to the device. The subway is a feature, not a
+                problem.
+              </li>
+              <li><code>quiet</code>Cards wait for you. Nothing here demands an instant reply.</li>
+            </ul>
+            <div class="app-actions">
+              <a class="button primary" href="https://testflight.apple.com/join/hewFxAEU">
+                Download for iOS
+              </a>
+            </div>
+            <p class="try-note">← Try it. Drag the top card in any direction.</p>
+          </div>
+
+          <div class="phone-wrap">
+            <div
+              class="phone"
+              role="application"
+              aria-label="Interactive demo of the Agent Box deck"
+            >
+              <div class="phone-status"><span>09:41</span><span>agentboxes.cc</span></div>
+              <div class="phone-bar">
+                <span class="phone-brand">deck</span>
+                <span class="deck-count" id="deck-count">1 / 13</span>
+              </div>
+              <div class="deck" id="deck">
+                <!-- Deck cards reuse the carousel design languages. Last element is on top. -->
+                <article class="deck-card ex-flap" data-title="Departures">
+                  <header><span>transit-agent</span><span>08:52</span></header>
+                  <p class="fl-title">bedford av — manhattan bound</p>
+                  <ul class="fl-rows">
+                    <li>
+                      <b class="fl-bullet">L</b><span class="fl-dest">8 av</span>
+                      <span class="fl-tiles"><i>3</i><i> </i><i>m</i><i>i</i><i>n</i></span>
+                    </li>
+                    <li>
+                      <b class="fl-bullet">L</b><span class="fl-dest">8 av</span>
+                      <span class="fl-tiles"><i>9</i><i> </i><i>m</i><i>i</i><i>n</i></span>
+                    </li>
+                    <li class="dim">
+                      <b class="fl-bullet">L</b><span class="fl-dest">8 av</span>
+                      <span class="fl-tiles"><i>1</i><i>4</i><i> </i><i>m</i><i>n</i></span>
+                    </li>
+                  </ul>
+                  <footer>leave by 08:58 to make it</footer>
+                </article>
+
+                <article class="deck-card ex-board" data-title="Sprint board">
+                  <header><span>linear-agent</span><span>09:00</span></header>
+                  <h3 class="bd-title">Sprint 14 — 3 left.</h3>
+                  <div class="bd-cols">
+                    <div class="bd-col">
+                      <p>todo · 2</p>
+                      <div class="bd-item" style="--t: #e02b20">Rate-limit UI</div>
+                      <div class="bd-item" style="--t: #7c5cff">Empty states</div>
+                    </div>
+                    <div class="bd-col">
+                      <p>doing · 1</p>
+                      <div class="bd-item" style="--t: #d97706">Sync retries</div>
+                    </div>
+                    <div class="bd-col">
+                      <p>done · 5</p>
+                      <div class="bd-item done" style="--t: #16a34a">Key rotation</div>
+                      <div class="bd-item done" style="--t: #16a34a">CI cache</div>
+                      <div class="bd-item done" style="--t: #16a34a">Deck v2</div>
+                    </div>
+                  </div>
+                  <footer>on track for friday</footer>
+                </article>
+
+                <article class="deck-card ex-rings" data-title="Activity">
+                  <header><span>fitness-agent</span><span>18:00</span></header>
+                  <div class="rings" aria-hidden="true">
+                    <i class="ring r1"></i><i class="ring r2"></i><i class="ring r3"></i>
+                  </div>
+                  <ul class="ring-stats">
+                    <li><i style="--c: #fa114f"></i>move<b>420 / 500</b></li>
+                    <li><i style="--c: #92e82a"></i>exercise<b>26 / 30 min</b></li>
+                    <li><i style="--c: #00d3f2"></i>stand<b>9 / 12 h</b></li>
+                  </ul>
+                  <footer>a 20 min walk closes move</footer>
+                </article>
+
+                <article class="deck-card ex-poster" data-title="Tonight">
+                  <header><span>events-agent</span><span>17:30</span></header>
+                  <p class="po-type" aria-hidden="true">
+                    <span>vinyl</span>
+                    <span class="po-outline">night</span>
+                    <span>fri 21:00</span>
+                  </p>
+                  <p class="po-note">Two friends are going.<br />Doors 20:30, Ridgewood.</p>
+                  <footer>show_at: fri 16:00</footer>
+                </article>
+
+                <article class="deck-card ex-pass" data-title="Boarding pass">
+                  <header><span>travel-agent</span><span>05:10</span></header>
+                  <p class="bp-route"><b>JFK</b><span class="bp-arrow">→</span><b>SFO</b></p>
+                  <ul class="bp-meta">
+                    <li><span>flight</span><b>DL 414</b></li>
+                    <li><span>boards</span><b>09:40</b></li>
+                    <li><span>gate</span><b>B12</b></li>
+                    <li><span>seat</span><b>4A</b></li>
+                  </ul>
+                  <div class="bp-tear" aria-hidden="true"></div>
+                  <div class="bp-stub">
+                    <div class="bp-qr" aria-hidden="true"></div>
+                    <p>Checked in. Terminal 4 is slow today — leave by 08:10.</p>
+                  </div>
+                </article>
+
+                <article class="deck-card ex-rcpt" data-title="Nightly build">
+                  <header><span>ci-agent</span><span>03:12</span></header>
+                  <p class="rc-title">nightly build</p>
+                  <ul class="rc-rows">
+                    <li><span>tests</span><b>214</b></li>
+                    <li><span>failures</span><b>0</b></li>
+                    <li><span>duration</span><b>4m 12s</b></li>
+                    <li><span>coverage</span><b>91%</b></li>
+                    <li><span>bundle</span><b>−6 KB</b></li>
+                  </ul>
+                  <div class="rc-stamp" aria-label="Build passed">pass</div>
+                  <div class="rc-code" aria-hidden="true"></div>
+                  <footer>show_at: 07:00</footer>
+                </article>
+
+                <article class="deck-card ex-map" data-title="Delivery">
+                  <div class="map-bg" aria-hidden="true">
+                    <svg viewBox="0 0 280 200" preserveAspectRatio="none">
+                      <path class="route" d="M18,178 C60,150 52,96 110,92 S208,70 244,34" />
+                      <circle class="pt-a" cx="18" cy="178" r="5" />
+                      <circle class="pt-b" cx="244" cy="34" r="6" />
+                    </svg>
+                  </div>
+                  <header><span>orders-agent</span><span>10:40</span></header>
+                  <div class="map-panel">
+                    <h3>Desk lamp arrives ~14:20.</h3>
+                    <ol class="map-steps">
+                      <li class="done">ordered</li>
+                      <li class="done">shipped</li>
+                      <li class="live">out for delivery</li>
+                    </ol>
+                  </div>
+                </article>
+
+                <article class="deck-card ex-tape" data-title="Markets">
+                  <header><span>market-agent</span><span>16:10 EDT</span></header>
+                  <p class="tape-label">U.S. close</p>
+                  <svg
+                    class="tape-chart"
+                    viewBox="0 0 240 70"
+                    preserveAspectRatio="none"
+                    aria-hidden="true"
+                  >
+                    <defs>
+                      <linearGradient id="tapefill-deck" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0" stop-color="#31e981" stop-opacity="0.5" />
+                        <stop offset="1" stop-color="#31e981" stop-opacity="0" />
+                      </linearGradient>
+                    </defs>
+                    <path
+                      d="M0,52 30,48 60,55 90,34 120,39 150,24 180,28 210,14 240,10 V70 H0 Z"
+                      fill="url(#tapefill-deck)"
+                    />
+                    <path
+                      d="M0,52 30,48 60,55 90,34 120,39 150,24 180,28 210,14 240,10"
+                      fill="none"
+                      stroke="#31e981"
+                      stroke-width="2"
+                    />
+                  </svg>
+                  <ul class="tape-rows">
+                    <li><span>SPX</span><b>6,412.30</b><em class="up">+0.8%</em></li>
+                    <li><span>NDQ</span><b>23,118.04</b><em class="up">+1.2%</em></li>
+                    <li><span>US10Y</span><b>3.82</b><em class="dn">−2bp</em></li>
+                  </ul>
+                  <footer>expires_at: next open</footer>
+                </article>
+
+                <article class="deck-card ex-chat" data-title="Slack digest">
+                  <header><span>slack-agent</span><span>12:05</span></header>
+                  <h3 class="chat-title">4 unread threads.</h3>
+                  <ul class="chat-list" id="slack-list">
+                    <li>
+                      <button type="button">
+                        <i style="--a: #d97706">in</i>
+                        <div><b>#incidents</b><span>retro doc — you were tagged</span></div>
+                        <em>2</em>
+                      </button>
+                    </li>
+                    <li>
+                      <button type="button">
+                        <i style="--a: #7c5cff">ds</i>
+                        <div><b>#design</b><span>icon vote closes at 17:00</span></div>
+                        <em>1</em>
+                      </button>
+                    </li>
+                    <li>
+                      <button type="button">
+                        <i style="--a: #16a34a">pk</i>
+                        <div><b>priya</b><span>offsite dates?</span></div>
+                        <em>3</em>
+                      </button>
+                    </li>
+                    <li>
+                      <button type="button">
+                        <i style="--a: #0e93d6">dp</i>
+                        <div><b>#deploys</b><span>release notes draft</span></div>
+                        <em>1</em>
+                      </button>
+                    </li>
+                  </ul>
+                  <p class="dc-hint">tap a thread to mark it read</p>
+                </article>
+
+                <article class="deck-card ex-term" data-title="Pull requests">
+                  <div class="term-chrome">
+                    <i></i><i></i><i></i><span>github-agent · 08:15</span>
+                  </div>
+                  <p class="term-line"><span class="pr-prompt">❯</span> prs --waiting-on me</p>
+                  <details class="term-details" open>
+                    <summary>
+                      api#517 queue retries <span class="ok">+214</span>
+                      <span class="del">−38</span>
+                    </summary>
+                    <pre class="term-diff"><code><span class="del">- retry(after: 30)</span>
+<span class="ok">+ retry(after: jitter(30))</span></code></pre>
+                    <p>Adds jittered backoff to card delivery. Two approvals, one comment open.</p>
+                  </details>
+                  <details class="term-details">
+                    <summary>
+                      web#98 deck redesign <span class="ok">+56</span> <span class="del">−412</span>
+                    </summary>
+                    <p>Removes the old list view. Screens attached. CI is green.</p>
+                  </details>
+                  <p class="dc-hint">tap a row to expand it</p>
+                </article>
+
+                <article class="deck-card ex-edit" data-title="Briefing">
+                  <header><span>briefing-agent</span><span>07:00</span></header>
+                  <p class="ed-mast">The Morning Brief</p>
+                  <p class="ed-date">Tuesday, August 4 · № 212</p>
+                  <details class="ed-sec" open>
+                    <summary>Work</summary>
+                    <p>Design review moved to 14:00. PR #482 was approved overnight.</p>
+                  </details>
+                  <details class="ed-sec">
+                    <summary>Money</summary>
+                    <p>Vercel invoice: $240. Server costs are down 12% this month.</p>
+                  </details>
+                  <details class="ed-sec">
+                    <summary>Life</summary>
+                    <p>Dinner with Casey at 19:00. Rain after 17:00 — take a jacket.</p>
+                  </details>
+                  <p class="dc-hint">sections expand — tap one</p>
+                </article>
+
+                <article class="deck-card ex-day" data-title="Calendar">
+                  <header><span>calendar-agent</span><span>07:00</span></header>
+                  <h3 class="day-title">Tue <b>4</b></h3>
+                  <div class="day-grid" aria-label="Day timeline">
+                    <span class="hr-label" style="--r: 0">09</span>
+                    <span class="hr-label" style="--r: 1">10</span>
+                    <span class="hr-label" style="--r: 2">11</span>
+                    <span class="hr-label" style="--r: 3">12</span>
+                    <span class="hr-label" style="--r: 4">13</span>
+                    <span class="hr-label" style="--r: 5">14</span>
+                    <span class="hr-label" style="--r: 6">15</span>
+                    <div class="evt e-cobalt" style="--s: 0.5; --d: 0.5">Standup</div>
+                    <div class="evt e-plum" style="--s: 2; --d: 1">Design review</div>
+                    <div class="evt e-teal" style="--s: 4; --d: 0.75">1:1 — Sam</div>
+                    <div class="evt e-orange" style="--s: 6; --d: 1">Vendor call</div>
+                    <div class="now-line" style="--s: 2.4"><i></i></div>
+                  </div>
+                  <p class="dc-hint">free after 15:30</p>
+                </article>
+
+                <article class="deck-card ex-sky" data-title="Weather">
+                  <header><span>weather-agent</span><span>06:30</span></header>
+                  <p class="sky-temp">
+                    <span id="temp-value" data-f="72">72</span>°<span
+                      class="temp-unit"
+                      id="temp-unit"
+                      >F</span
+                    >
+                  </p>
+                  <p class="sky-cond">Clear until 17:00, then rain. Take a jacket tonight.</p>
+                  <ul class="sky-hours" aria-label="Hourly forecast">
+                    <li><span>12p</span><i class="ic-sun"></i><b data-f="75">75°</b></li>
+                    <li><span>3p</span><i class="ic-sun"></i><b data-f="77">77°</b></li>
+                    <li><span>6p</span><i class="ic-cloud"></i><b data-f="71">71°</b></li>
+                    <li><span>9p</span><i class="ic-rain"></i><b data-f="66">66°</b></li>
+                  </ul>
+                  <button type="button" class="unit-toggle" id="unit-toggle">show °C</button>
+                </article>
+              </div>
+              <div class="deck-empty" id="deck-empty" hidden>
+                <p class="empty-mark">▤</p>
+                <p>Deck clear.<br />See you this afternoon.</p>
+                <button type="button" class="button ghost" id="deck-reset">Restore the deck</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 03 / WHY ============ -->
+      <section id="why" class="why-section" aria-labelledby="why-title">
+        <div class="shell">
+          <p class="index-label">03 / why</p>
+          <h2 id="why-title">A new take on email.</h2>
+          <p class="why-lede">
+            Email was built for people who type. Agents ship complete web pages. Agent Box keeps the
+            good part of email — an inbox you own — and rebuilds the rest around agents.
+          </p>
+
+          <dl class="why-rows">
+            <div class="why-row">
+              <dt><code>sender</code></dt>
+              <dd>
+                <h3>No spam, structurally.</h3>
+                <p>
+                  Only agents you created hold keys. A stranger has no path to your deck — there is
+                  no address to guess and no list to buy.
+                </p>
+              </dd>
+            </div>
+            <div class="why-row">
+              <dt><code>html + js</code></dt>
+              <dd>
+                <h3>Cards are mini web apps.</h3>
+                <p>
+                  A card is a full HTML document with JavaScript, not a rich-text template. Charts,
+                  toggles, collapsible sections — whatever the agent can build.
+                </p>
+              </dd>
+            </div>
+            <div class="why-row">
+              <dt><code>offline</code></dt>
+              <dd>
+                <h3>Downloaded, not fetched.</h3>
+                <p>
+                  The deck syncs to your device before you need it. Read the morning briefing on the
+                  subway with zero bars.
+                </p>
+              </dd>
+            </div>
+            <div class="why-row">
+              <dt><code>expires_in</code></dt>
+              <dd>
+                <h3>Old news deletes itself.</h3>
+                <p>
+                  A daily card can expire in 24 hours. Skip three days and you get today's card —
+                  not a guilt pile of stale ones.
+                </p>
+              </dd>
+            </div>
+            <div class="why-row">
+              <dt><code>show_at</code></dt>
+              <dd>
+                <h3>Scheduled for later.</h3>
+                <p>
+                  An agent can post now and surface the card Friday at 07:00. Your deck stays empty
+                  until the card is worth reading.
+                </p>
+              </dd>
+            </div>
+            <div class="why-row">
+              <dt><code>feedback</code></dt>
+              <dd>
+                <h3>Tell the agent what to change.</h3>
+                <p>
+                  Leave a comment on any agent card. The agent gets the comment and the original
+                  card HTML, then resolves the item after it makes the change.
+                </p>
+              </dd>
+            </div>
+          </dl>
+
+          <figure class="quote">
+            <blockquote>“HTML is the new markdown.”</blockquote>
+            <figcaption>
+              —
+              <a href="https://x.com/trq212/status/2052811606032269638" rel="noopener"
+                >Thariq Shihipar</a
+              >, Claude Code, Anthropic
+            </figcaption>
+          </figure>
+
+          <p class="positioning">
+            Agent Box is not a pager. It is the easiest place for every agent you run to leave you
+            bite-sized information — and a calm queue you read when you have time.
+          </p>
+        </div>
+      </section>
+
+      <!-- ============ 04 / ACCOUNT ============ -->
+      <section id="account" class="account-section" aria-labelledby="account-title">
+        <div class="shell account-grid">
+          <div>
+            <p class="index-label">04 / account</p>
+            <h2 id="account-title">One key.<br />No password.</h2>
+            <p>
+              We show one account key once. Save it in a password manager. Use it to sign in to any
+              client and to create agents or email inboxes.
+            </p>
+          </div>
+          <div class="account-panel">
+            <div class="panel-head"><code>POST /v1/accounts</code></div>
+            <button id="create-account" class="button primary" type="button">Create account</button>
+            <p id="account-status" class="status" role="status" aria-live="polite"></p>
+            <div id="account-result" class="key-result" hidden>
+              <div class="key-label"><span>your account key</span><strong>shown once</strong></div>
+              <code id="account-key"></code>
+              <button class="button secondary" type="button" data-copy-target="account-key">
+                Copy key
+              </button>
+              <p>
+                Agent Box cannot recover this key. Store it in a password manager or secret store.
+                Then paste it into a client and create an agent.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 05 / API ============ -->
+      <section id="api" class="api-section" aria-labelledby="api-title">
+        <div class="shell">
+          <p class="index-label">05 / api</p>
+          <h2 id="api-title">Ship a card in one request.</h2>
+          <p class="api-lede">
+            Create an agent with your account key. Then the agent posts cards with its own key —
+            JSON or direct <code>text/html</code>.
+          </p>
+
+          <div class="api-grid">
+            <div class="code-block">
+              <div class="code-head">
+                <span>POST</span><code>https://api.agentboxes.cc/v1/cards</code>
+              </div>
+              <pre><code>Authorization: Bearer ab_agent_…
+Content-Type: application/json
+
+{
+  "title": "Nightly build passed",
+  "html": "&lt;h2&gt;214 tests, 0 failures&lt;/h2&gt;…",
+  "show_at": "2026-08-05T07:00:00Z",
+  "expires_in": "24h"
+}</code></pre>
+              <button type="button" class="copy-btn" data-copy-target="api-command">
+                Copy cURL
+              </button>
+              <code id="api-command" hidden
+                >curl https://api.agentboxes.cc/v1/cards -H 'Authorization: Bearer YOUR_AGENT_KEY'
+                -H 'Content-Type: application/json' --data '{"title":"Nightly build
+                passed","html":"&lt;h2&gt;214 tests, 0
+                failures&lt;/h2&gt;","expires_in":"24h"}'</code
+              >
+            </div>
+
+            <div class="endpoint-index">
+              <div class="panel-head"><span>endpoint index</span></div>
+              <ul>
+                <li><code>POST /v1/accounts</code><span>create an account, get one key</span></li>
+                <li><code>POST /v1/agents</code><span>name an agent, get its key</span></li>
+                <li>
+                  <code>POST /v1/inboxes</code><span>random email address for newsletters</span>
+                </li>
+                <li><code>POST /v1/cards</code><span>send a card (agent key)</span></li>
+                <li>
+                  <code>GET&nbsp; /v1/feedback</code><span>read comments for your cards</span>
+                </li>
+                <li><code>GET&nbsp; /v1/sync</code><span>pull changed cards by cursor</span></li>
+              </ul>
+              <p class="api-notes">
+                Durations accept <code>45m</code>, <code>2h 30m</code>, <code>3w</code>, or ISO
+                8601. Limits: 500 KB per card, 120 cards per hour. Email cards always render in
+                restricted mode.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 06 / SELF-HOST ============ -->
+      <section id="selfhost" class="selfhost-section" aria-labelledby="selfhost-title">
+        <div class="shell selfhost-grid">
+          <div>
+            <p class="index-label">06 / self-host</p>
+            <h2 id="selfhost-title">Or run it yourself.</h2>
+            <p>
+              Agent Box is open source under the MIT license. The whole service — API, mail routing,
+              this page — is one Cloudflare Worker with a D1 database. Clone it, point wrangler at
+              your account, deploy.
+            </p>
+          </div>
+          <div class="code-block selfhost-code">
+            <div class="code-head"><span>$</span><code>your own agentbox, ~2 minutes</code></div>
+            <pre><code>npm install
+npm run cloudflare:db:migrate:remote
+npm run cloudflare:deploy</code></pre>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="shell">
+        <a class="brand" href="#top"><span>agent&nbsp;box</span></a>
+        <p>Small HTML cards from your agents. Read on your time.</p>
+        <a class="link-btn" href="https://testflight.apple.com/join/hewFxAEU">download the app →</a>
+        <span>agentboxes.cc · MIT</span>
+      </div>
+    </footer>
+  </body>
+</html>

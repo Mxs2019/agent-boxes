@@ -1,0 +1,75 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "agent-box-api",
+  "main": "src/index.ts",
+  "routes": [
+    {
+      "pattern": "agentboxes.cc",
+      "custom_domain": true,
+    },
+    {
+      "pattern": "api.agentboxes.cc",
+      "custom_domain": true,
+    },
+  ],
+  "addresses": ["*@agentboxes.cc"],
+  "assets": {
+    "binding": "ASSETS",
+    "directory": "../web/public",
+    "run_worker_first": true,
+  },
+  "compatibility_date": "2026-08-03",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true,
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "agent-box",
+      "migrations_dir": "migrations",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+    },
+  ],
+  "queues": {
+    "producers": [
+      {
+        "binding": "CARD_UPDATE_QUEUE",
+        "queue": "agent-box-card-updates",
+      },
+    ],
+    "consumers": [
+      {
+        "queue": "agent-box-card-updates",
+        "max_batch_size": 100,
+        "max_batch_timeout": 15,
+        "max_retries": 3,
+        "retry_delay": 60,
+        "dead_letter_queue": "agent-box-card-updates-dlq",
+      },
+    ],
+  },
+  "ratelimits": [
+    {
+      "name": "CARD_RATE_LIMITER",
+      "namespace_id": "1001",
+      "simple": {
+        "limit": 30,
+        "period": 60,
+      },
+    },
+    {
+      "name": "ACCOUNT_RATE_LIMITER",
+      "namespace_id": "1002",
+      "simple": {
+        "limit": 5,
+        "period": 60,
+      },
+    },
+  ],
+  "vars": {
+    "APNS_TOPIC": "cc.agentboxes",
+    "CARDS_PER_HOUR": "120",
+    "INBOX_EMAIL_DOMAIN": "agentboxes.cc",
+  },
+}

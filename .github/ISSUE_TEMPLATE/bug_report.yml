@@ -1,0 +1,40 @@
+name: Bug report
+description: Report a reproducible problem. Do not report a security problem here.
+title: "Bug: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: Do not include credentials, private data, or vulnerability details. Use the Security tab for a vulnerability.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Problem
+      description: Describe what happened and what you expected.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      description: Give the smallest set of steps that shows the problem.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+    validations:
+      required: true
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - Cloudflare service
+        - iOS app
+        - Website
+        - Documentation
+    validations:
+      required: true

@@ -1,0 +1,49 @@
+{
+  "name": "agent-box-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "type": "module",
+  "scripts": {
+    "check": "npm run safety:check && npm run dependencies:check && npm run check --workspaces --if-present && npm run format:check && npm run mobile:build && npm run mobile:test",
+    "cloudflare:db:migrate:local": "npm run db:migrate:local --workspace @agent-box/cloudflare",
+    "cloudflare:db:migrate:remote": "npm run db:migrate:remote --workspace @agent-box/cloudflare",
+    "cloudflare:account:create": "npm run account:create --workspace @agent-box/cloudflare",
+    "cloudflare:agent:create": "npm run agent:create --workspace @agent-box/cloudflare --",
+    "cloudflare:deploy": "npm run deploy --workspace @agent-box/cloudflare",
+    "cloudflare:dev": "npm run dev --workspace @agent-box/cloudflare",
+    "cloudflare:seed:demo": "npm run seed:demo --workspace @agent-box/cloudflare",
+    "dependencies:check": "node scripts/check-dependency-policy.mjs",
+    "format": "oxfmt .",
+    "format:check": "oxfmt --check .",
+    "mobile:build": "xcodebuild -quiet -project apps/mobile/AgentBox.xcodeproj -scheme AgentBox -destination 'generic/platform=iOS Simulator' -derivedDataPath .build/ios CODE_SIGNING_ALLOWED=NO build",
+    "mobile:test": "xcodebuild -quiet -project apps/mobile/AgentBox.xcodeproj -scheme AgentBox -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -derivedDataPath .build/ios-test test",
+    "safety:check": "node scripts/check-public-safety.mjs",
+    "test": "npm run test --workspaces --if-present"
+  },
+  "devDependencies": {
+    "oxfmt": "0.62.0"
+  },
+  "overrides": {
+    "miniflare": {
+      "undici": "7.29.0"
+    }
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "npm",
+      "version": "12.0.2",
+      "onFail": "error"
+    }
+  },
+  "packageManager": "npm@12.0.2",
+  "allowScripts": {
+    "esbuild@0.28.1": true,
+    "fsevents@2.3.3": true,
+    "workerd@1.20260730.1": true
+  }
+}

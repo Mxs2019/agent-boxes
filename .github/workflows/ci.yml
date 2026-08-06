@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  repository:
+    name: Repository checks
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.18.0
+          cache: npm
+      - name: Set up npm
+        run: npm install --global npm@12.0.2
+      - name: Install dependencies
+        run: npm ci
+      - name: Check public files
+        run: npm run safety:check
+      - name: Check dependency policy
+        run: npm run dependencies:check
+      - name: Check workspaces
+        run: npm run check --workspaces --if-present
+      - name: Check formatting
+        run: npm run format:check
+      - name: Audit dependencies
+        run: npm audit --audit-level=moderate
+
+  ios:
+    name: iOS build and tests
+    runs-on: macos-26
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+      - name: Build the iOS app
+        run: >-
+          xcodebuild -quiet
+          -project apps/mobile/AgentBox.xcodeproj
+          -scheme AgentBox
+          -destination 'generic/platform=iOS Simulator'
+          -derivedDataPath .build/ios
+          CODE_SIGNING_ALLOWED=NO
+          build
+      - name: Test the iOS app
+        run: >-
+          xcodebuild -quiet
+          -project apps/mobile/AgentBox.xcodeproj
+          -scheme AgentBox
+          -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
+          -derivedDataPath .build/ios-test
+          test

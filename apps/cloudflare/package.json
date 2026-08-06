@@ -1,0 +1,31 @@
+{
+  "name": "@agent-box/cloudflare",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "check": "npm run types && tsc --noEmit && tsc -p test/tsconfig.json --noEmit && npm test",
+    "account:create": "node scripts/create-account.mjs",
+    "agent:create": "node scripts/create-agent.mjs",
+    "db:migrate:local": "wrangler d1 migrations apply agent-box --local",
+    "db:migrate:remote": "wrangler d1 migrations apply agent-box --remote",
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "seed:demo": "node scripts/seed-demo.mjs",
+    "test": "vitest run",
+    "types": "wrangler types"
+  },
+  "dependencies": {
+    "entities": "8.0.0",
+    "postal-mime": "2.7.5",
+    "ulid": "3.0.2"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "0.20.1",
+    "@types/node": "24.1.0",
+    "typescript": "7.0.2",
+    "vitest": "4.1.10",
+    "wrangler": "4.118.0"
+  }
+}
