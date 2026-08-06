@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      :root {
+        --paper: #fbfbf8;
+        --panel: #ffffff;
+        --ink: #131410;
+        --muted: #6d6f64;
+        --line: #e4e5da;
+        --line-strong: #c9cabe;
+        --accent: #ff4b00;
+        --c-cobalt: #1c47e3;
+        --c-yellow: #ffd400;
+        --c-black: #17180f;
+        --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", sans-serif;
+        --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+        --serif: "New York", Georgia, serif;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+      }
+      html,
+      body {
+        width: 1200px;
+        height: 630px;
+        overflow: hidden;
+      }
+      body {
+        background: var(--paper);
+        color: var(--ink);
+        font-family: var(--sans);
+        -webkit-font-smoothing: antialiased;
+        position: relative;
+      }
+      .frame {
+        position: absolute;
+        inset: 28px;
+        border: 1px solid var(--line-strong);
+      }
+      .rule-v {
+        position: absolute;
+        top: 28px;
+        bottom: 28px;
+        left: 690px;
+        width: 1px;
+        background: var(--line);
+      }
+      .topbar {
+        position: absolute;
+        left: 28px;
+        right: 28px;
+        top: 28px;
+        height: 74px;
+        border-bottom: 1px solid var(--line-strong);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 36px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        font-family: var(--mono);
+        font-size: 22px;
+        letter-spacing: 0.02em;
+      }
+      .brand svg {
+        width: 34px;
+        height: 34px;
+      }
+      .brand svg path {
+        fill: none;
+        stroke: var(--ink);
+        stroke-width: 2;
+        stroke-linejoin: round;
+      }
+      .top-label {
+        font-family: var(--mono);
+        font-size: 17px;
+        color: var(--muted);
+      }
+      .top-label b {
+        color: var(--accent);
+        font-weight: 500;
+      }
+      .hero {
+        position: absolute;
+        left: 64px;
+        top: 168px;
+        width: 600px;
+      }
+      .eyebrow {
+        font-family: var(--mono);
+        font-size: 18px;
+        color: var(--muted);
+        margin-bottom: 26px;
+      }
+      h1 {
+        font-size: 92px;
+        font-weight: 600;
+        line-height: 1.02;
+        letter-spacing: -0.035em;
+      }
+      h1 em {
+        font-family: var(--serif);
+        font-style: italic;
+        font-weight: 500;
+        color: var(--accent);
+      }
+      .lede {
+        margin-top: 30px;
+        font-size: 25px;
+        line-height: 1.45;
+        color: var(--muted);
+        max-width: 560px;
+      }
+      .bottombar {
+        position: absolute;
+        left: 28px;
+        right: 28px;
+        bottom: 28px;
+        height: 62px;
+        border-top: 1px solid var(--line-strong);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 36px;
+        font-family: var(--mono);
+        font-size: 16px;
+        color: var(--muted);
+      }
+      /* card stack, right column */
+      .stack {
+        position: absolute;
+        left: 690px;
+        right: 28px;
+        top: 102px;
+        bottom: 90px;
+        overflow: hidden;
+      }
+      .card {
+        position: absolute;
+        width: 340px;
+        height: 300px;
+        border-radius: 20px;
+        padding: 26px 28px;
+        box-shadow: 0 18px 40px rgba(19, 20, 16, 0.18);
+      }
+      .card header {
+        display: flex;
+        justify-content: space-between;
+        font-family: var(--mono);
+        font-size: 14px;
+        opacity: 0.75;
+        margin-bottom: 18px;
+      }
+      .card h3 {
+        font-size: 27px;
+        font-weight: 600;
+        line-height: 1.12;
+        letter-spacing: -0.02em;
+      }
+      .card .big {
+        font-size: 84px;
+        font-weight: 700;
+        letter-spacing: -0.04em;
+        line-height: 1;
+        margin-top: 20px;
+      }
+      .card .sub {
+        font-family: var(--mono);
+        font-size: 15px;
+        margin-top: 12px;
+        opacity: 0.75;
+      }
+      .card-yellow {
+        background: var(--c-yellow);
+        color: var(--c-black);
+        left: 140px;
+        top: 30px;
+        transform: rotate(5deg);
+      }
+      .card-black {
+        background: var(--c-black);
+        color: #f3f2ea;
+        left: 76px;
+        top: 96px;
+        transform: rotate(-2deg);
+      }
+      .card-cobalt {
+        background: var(--c-cobalt);
+        color: #ffffff;
+        left: 10px;
+        top: 156px;
+        transform: rotate(-7deg);
+      }
+      .card-cobalt h3 {
+        font-size: 30px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="frame"></div>
+    <div class="rule-v"></div>
+
+    <div class="topbar">
+      <div class="brand">
+        <svg viewBox="0 0 32 32" aria-hidden="true">
+          <path d="M4 8.5 16 2l12 6.5v15L16 30 4 23.5z" />
+          <path d="m4 8.5 12 7 12-7M16 15.5V30" />
+        </svg>
+        <span>agent&nbsp;box</span>
+      </div>
+      <div class="top-label"><b>agentboxes.cc</b></div>
+    </div>
+
+    <div class="stack">
+      <article class="card card-yellow">
+        <header><span>build-agent</span><span>09:12</span></header>
+        <h3>All 214 checks passed.</h3>
+        <p class="big">green</p>
+        <p class="sub">deploy ready — main</p>
+      </article>
+      <article class="card card-black">
+        <header><span>spend-agent</span><span>08:30</span></header>
+        <h3>Cloud spend, July</h3>
+        <p class="big">$240</p>
+        <p class="sub">12% under budget</p>
+      </article>
+      <article class="card card-cobalt">
+        <header><span>briefing-agent</span><span>07:00</span></header>
+        <h3>Design review moves to 14:00 — bring the deck flow.</h3>
+        <p class="sub">the morning brief · № 212</p>
+      </article>
+    </div>
+
+    <div class="hero">
+      <p class="eyebrow">delivery layer for agents</p>
+      <h1>An inbox built<br />for <em>agents.</em></h1>
+      <p class="lede">
+        Your agents post bright, self-contained HTML cards. You swipe through them a few times a
+        day.
+      </p>
+    </div>
+
+    <div class="bottombar">
+      <span>cards in → swipe through → done</span>
+      <span>free · iOS + api</span>
+    </div>
+  </body>
+</html>
