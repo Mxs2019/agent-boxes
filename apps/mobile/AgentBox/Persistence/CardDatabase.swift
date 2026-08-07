@@ -176,13 +176,24 @@ actor CardDatabase {
             let statement = try prepare(
                 """
                 UPDATE cards
-                SET cleared_at = NULL, show_at = NULL, snoozed_until = ?1
-                WHERE id = ?2
+                SET cleared_at = NULL,
+                    show_at = NULL,
+                    expires_at = CASE
+                        WHEN expires_at IS NOT NULL AND expires_at <= ?1 THEN NULL
+                        ELSE expires_at
+                    END,
+                    snoozed_until = ?2
+                WHERE id = ?3
                 """
             )
             defer { sqlite3_finalize(statement) }
             bindText(statement, index: 1, value: CardDateCoding.string(from: date))
-            bindText(statement, index: 2, value: cardID)
+            bindText(
+                statement,
+                index: 2,
+                value: CardDateCoding.string(from: date.addingTimeInterval(-1))
+            )
+            bindText(statement, index: 3, value: cardID)
             try stepDone(statement)
 
             try replacePendingCardAction(cardID: cardID, type: .restore, at: date)

@@ -3,6 +3,55 @@ import WebKit
 @testable import AgentBox
 
 final class CardTests: XCTestCase {
+    @MainActor
+    func testNotificationPayloadReadsAValidCardID() {
+        XCTAssertEqual(
+            AppDelegate.notificationCardID(from: ["card_id": "card_01TEST"]),
+            "card_01TEST"
+        )
+        XCTAssertNil(AppDelegate.notificationCardID(from: ["card_id": "invalid"]))
+        XCTAssertNil(AppDelegate.notificationCardID(from: [:]))
+    }
+
+    @MainActor
+    func testNotificationTapMovesAnActiveCardToTheTop() async {
+        let model = PreviewData.model(cards: [PreviewData.activeMarket, PreviewData.activeReview])
+        XCTAssertEqual(model.activeCards.map(\.id), [
+            PreviewData.activeMarket.id,
+            PreviewData.activeReview.id,
+        ])
+
+        await model.openCardFromNotification(PreviewData.activeReview.id)
+
+        XCTAssertEqual(model.activeCards.map(\.id), [
+            PreviewData.activeReview.id,
+            PreviewData.activeMarket.id,
+        ])
+        XCTAssertNotNil(model.notificationOpenRequestID)
+    }
+
+    @MainActor
+    func testNotificationTapAddsAnInactiveCardToTheTop() async {
+        for card in [
+            PreviewData.cleared,
+            PreviewData.expired,
+            PreviewData.snoozed,
+            PreviewData.scheduled,
+        ] {
+            let model = PreviewData.model(cards: [PreviewData.activeMarket, card])
+
+            await model.openCardFromNotification(card.id)
+
+            XCTAssertEqual(model.activeCards.first?.id, card.id)
+            XCTAssertNil(model.activeCards.first?.clearedAt)
+            XCTAssertNil(model.activeCards.first?.showAt)
+            XCTAssertFalse(model.activeCards.first?.snoozedUntil.map { $0 > Date() } ?? false)
+            if card.status() == .expired {
+                XCTAssertNil(model.activeCards.first?.expiresAt)
+            }
+        }
+    }
+
     func testCardLifecycle() {
         let now = Date()
         var card = Card(
@@ -212,6 +261,35 @@ final class CardTests: XCTestCase {
         XCTAssertTrue(cardsAfterRemoval.isEmpty)
         XCTAssertTrue(actionsAfterRemoval.isEmpty)
         XCTAssertEqual(cursorAfterRemoval, 0)
+    }
+
+    func testRestoreToDeckRemovesAnExpiredLifetimeFromTheDatabase() async throws {
+        let databaseURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("agent-box-restore-tests-\(UUID().uuidString).sqlite")
+        let database = try CardDatabase(url: databaseURL)
+        let now = Date()
+        let card = Card(
+            id: "card_expired_restore_test",
+            accountID: "account_test",
+            sequence: 10,
+            title: "Expired card",
+            html: "<p>Restore this card.</p>",
+            plainText: "Restore this card.",
+            createdAt: now.addingTimeInterval(-7_200),
+            expiresAt: now.addingTimeInterval(-3_600),
+            clearedAt: nil,
+            source: "api",
+            sourceName: "test-agent",
+            metadata: [:]
+        )
+        try await database.upsert([card])
+
+        try await database.restoreToDeckLocally(cardID: card.id, at: now)
+
+        let stored = try await database.allCards()
+        let restored = try XCTUnwrap(stored.first)
+        XCTAssertEqual(restored.status(at: now.addingTimeInterval(1)), .active)
+        XCTAssertNil(restored.expiresAt)
     }
 
     @MainActor

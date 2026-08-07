@@ -19,6 +19,9 @@ struct AgentBoxApp: App {
                         await model?.registerDeviceToken(token)
                     }
                     await model.start()
+                    BackgroundRefreshCoordinator.shared.notificationTapHandler = { [weak model] cardID in
+                        await model?.openCardFromNotification(cardID)
+                    }
                     await model.enableBadge()
                     BackgroundRefreshCoordinator.shared.schedule()
                 }

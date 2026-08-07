@@ -372,21 +372,34 @@ describe("card ingestion and synchronization", () => {
     expect(secondSync.cards[0].cleared_at).not.toBeNull();
     expect(secondSync.cursor).toBeGreaterThan(firstSync.cursor);
 
+    await testEnv.DB.prepare("UPDATE cards SET expires_at = ?1 WHERE id = ?2")
+      .bind(Math.floor(Date.now() / 1000) - 60, creation.id)
+      .run();
+
     const restored = await call(`/v1/cards/${creation.id}/restore`, {
       method: "POST",
       headers: { authorization: `Bearer ${TOKEN}` },
     });
     expect(restored.status).toBe(200);
+    expect(await restored.json()).toMatchObject({
+      id: creation.id,
+      cleared_at: null,
+      expires_at: null,
+    });
 
     const restoredChange = await call(`/v1/sync?after=${secondSync.cursor}`, {
       headers: { authorization: `Bearer ${TOKEN}` },
     });
     const thirdSync = await restoredChange.json<{
-      cards: Array<{ id: string; cleared_at: string | null }>;
+      cards: Array<{ id: string; cleared_at: string | null; expires_at: string | null }>;
       cursor: number;
     }>();
     expect(thirdSync.cards).toHaveLength(1);
-    expect(thirdSync.cards[0]).toMatchObject({ id: creation.id, cleared_at: null });
+    expect(thirdSync.cards[0]).toMatchObject({
+      id: creation.id,
+      cleared_at: null,
+      expires_at: null,
+    });
     expect(thirdSync.cursor).toBeGreaterThan(secondSync.cursor);
   });
 

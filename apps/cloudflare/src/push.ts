@@ -145,7 +145,7 @@ async function sendToDevice(
     method: "POST",
     headers: {
       authorization: `bearer ${providerToken}`,
-      "apns-collapse-id": "agent-box-cards",
+      "apns-collapse-id": alert.cardId ?? "agent-box-cards",
       "apns-expiration": String(expiration),
       "apns-priority": "10",
       "apns-push-type": "alert",
@@ -247,20 +247,12 @@ export function makePushPreview(value: string | undefined): string {
   return `${clean.slice(0, PUSH_PREVIEW_LENGTH - 1).trimEnd()}…`;
 }
 
-export function alertForMessages(messages: Array<Message<CardUpdateMessage>>): PushAlert {
-  if (messages.length > 1) {
-    return {
-      body: `${messages.length} new cards are ready.`,
-      title: DEFAULT_PUSH_TITLE,
-    };
-  }
-
-  const card = messages[0]?.body;
-  return {
-    body: makePushPreview(card?.preview),
-    cardId: card?.card_id,
-    title: card?.title?.trim() || DEFAULT_PUSH_TITLE,
-  };
+export function alertsForMessages(messages: Array<Message<CardUpdateMessage>>): Array<PushAlert> {
+  return messages.map((message) => ({
+    body: makePushPreview(message.body?.preview),
+    cardId: message.body?.card_id,
+    title: message.body?.title?.trim() || DEFAULT_PUSH_TITLE,
+  }));
 }
 
 export async function handleCardUpdateBatch(
@@ -281,13 +273,18 @@ export async function handleCardUpdateBatch(
 
   await Promise.all(
     Array.from(messagesByAccount, async ([accountId, messages]) => {
-      try {
-        await sendAccountUpdate(env, accountId, fetch, undefined, alertForMessages(messages));
-        for (const message of messages) message.ack();
-      } catch (error) {
-        console.error(error);
-        for (const message of messages) message.retry({ delaySeconds: 60 });
-      }
+      const alerts = alertsForMessages(messages);
+      await Promise.all(
+        messages.map(async (message, index) => {
+          try {
+            await sendAccountUpdate(env, accountId, fetch, undefined, alerts[index]);
+            message.ack();
+          } catch (error) {
+            console.error(error);
+            message.retry({ delaySeconds: 60 });
+          }
+        }),
+      );
     }),
   );
 }

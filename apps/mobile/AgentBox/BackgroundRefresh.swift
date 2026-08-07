@@ -104,8 +104,12 @@ final class BackgroundRefreshCoordinator {
     var deviceTokenHandler: ((String) async -> Void)? {
         didSet { deliverPendingDeviceToken() }
     }
+    var notificationTapHandler: ((String) async -> Void)? {
+        didSet { deliverPendingNotificationCard() }
+    }
 
     private var pendingDeviceToken: String?
+    private var pendingNotificationCardID: String?
 
     func register() {
         BGTaskScheduler.shared.register(forTaskWithIdentifier: Self.identifier, using: nil) { task in
@@ -145,10 +149,21 @@ final class BackgroundRefreshCoordinator {
         deliverPendingDeviceToken()
     }
 
+    func receiveNotificationCardID(_ cardID: String) {
+        pendingNotificationCardID = cardID
+        deliverPendingNotificationCard()
+    }
+
     private func deliverPendingDeviceToken() {
         guard let token = pendingDeviceToken, let deviceTokenHandler else { return }
         pendingDeviceToken = nil
         Task { await deviceTokenHandler(token) }
+    }
+
+    private func deliverPendingNotificationCard() {
+        guard let cardID = pendingNotificationCardID, let notificationTapHandler else { return }
+        pendingNotificationCardID = nil
+        Task { await notificationTapHandler(cardID) }
     }
 }
 
@@ -169,10 +184,31 @@ final class AppDelegate: NSObject, UIApplicationDelegate, @preconcurrency UNUser
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
-        completionHandler([])
+        completionHandler([.banner, .list, .badge])
         Task { @MainActor in
             _ = await BackgroundRefreshCoordinator.shared.syncHandler?()
         }
+    }
+
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void
+    ) {
+        if let cardID = Self.notificationCardID(
+            from: response.notification.request.content.userInfo
+        ) {
+            BackgroundRefreshCoordinator.shared.receiveNotificationCardID(cardID)
+        }
+        completionHandler()
+    }
+
+    static func notificationCardID(from userInfo: [AnyHashable: Any]) -> String? {
+        guard let cardID = userInfo["card_id"] as? String,
+              cardID.hasPrefix("card_"),
+              !cardID.dropFirst(5).isEmpty
+        else { return nil }
+        return cardID
     }
 
     func application(

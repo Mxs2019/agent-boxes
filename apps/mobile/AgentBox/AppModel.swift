@@ -21,6 +21,7 @@ final class AppModel: ObservableObject {
     @Published private(set) var agents: [Agent] = []
     @Published private(set) var inboxes: [Inbox] = []
     @Published private(set) var feedback: [Feedback] = []
+    @Published private(set) var notificationOpenRequestID: UUID?
     @Published var errorMessage: String?
 
     private let database: CardDatabase?
@@ -29,6 +30,7 @@ final class AppModel: ObservableObject {
     private var accountKey: String?
     private var apnsToken: String?
     private var isDeviceRegistered = false
+    private var prioritizedCardID: String?
 
     private struct SyncOutcome {
         let succeeded: Bool
@@ -119,9 +121,15 @@ final class AppModel: ObservableObject {
 
     var activeCards: [Card] {
         let now = Date()
-        return cards
+        var activeCards = cards
             .filter { $0.status(at: now) == .active }
             .sorted { $0.sequence < $1.sequence }
+        if let prioritizedCardID,
+           let index = activeCards.firstIndex(where: { $0.id == prioritizedCardID })
+        {
+            activeCards.insert(activeCards.remove(at: index), at: 0)
+        }
+        return activeCards
     }
 
     var historyCards: [Card] {
@@ -301,6 +309,21 @@ final class AppModel: ObservableObject {
         return outcome.receivedChanges ? .newData : .noData
     }
 
+    func openCardFromNotification(_ cardID: String) async {
+        if !previewMode {
+            while isSyncing {
+                try? await Task.sleep(for: .milliseconds(50))
+            }
+            _ = await sync()
+        }
+        guard let card = cards.first(where: { $0.id == cardID }) else { return }
+        if card.status() != .active {
+            restoreToDeck(card)
+        }
+        prioritizedCardID = cardID
+        notificationOpenRequestID = UUID()
+    }
+
     private func synchronize(showErrors: Bool = false) async -> SyncOutcome {
         guard !isSyncing else { return SyncOutcome(succeeded: true, receivedChanges: false) }
         guard let database, let accountKey, let serviceURL else {
@@ -340,6 +363,7 @@ final class AppModel: ObservableObject {
 
     func clear(_ card: Card) {
         guard let index = cards.firstIndex(where: { $0.id == card.id }) else { return }
+        stopPrioritizing(card.id)
         let clearedAt = Date()
         let previousClearedAt = cards[index].clearedAt
         cards[index].clearedAt = clearedAt
@@ -368,6 +392,9 @@ final class AppModel: ObservableObject {
     func clearAll(_ activeCards: [Card]) {
         let cardIDs = Set(activeCards.map(\.id))
         guard !cardIDs.isEmpty else { return }
+        if let prioritizedCardID, cardIDs.contains(prioritizedCardID) {
+            self.prioritizedCardID = nil
+        }
         let clearedAt = Date()
         let previousCards = cards
         var updatedCards = cards
@@ -423,10 +450,13 @@ final class AppModel: ObservableObject {
     func restoreToDeck(_ card: Card) {
         guard let index = cards.firstIndex(where: { $0.id == card.id }) else { return }
         let previousCard = cards[index]
-        let restoredAt = Date().addingTimeInterval(-1)
+        let restoredAt = Date()
         cards[index].clearedAt = nil
         cards[index].showAt = nil
-        cards[index].snoozedUntil = restoredAt
+        if let expiresAt = cards[index].expiresAt, expiresAt <= restoredAt {
+            cards[index].expiresAt = nil
+        }
+        cards[index].snoozedUntil = restoredAt.addingTimeInterval(-1)
 
         if previewMode { return }
         guard let database else {
@@ -452,6 +482,7 @@ final class AppModel: ObservableObject {
         guard date > Date(), let index = cards.firstIndex(where: { $0.id == card.id }) else {
             return
         }
+        stopPrioritizing(card.id)
         let previousSnoozedUntil = cards[index].snoozedUntil
         cards[index].snoozedUntil = date
 
@@ -1004,6 +1035,12 @@ final class AppModel: ObservableObject {
         let cards = cards
         Task {
             await AppBadgeCoordinator.shared.update(cards: cards)
+        }
+    }
+
+    private func stopPrioritizing(_ cardID: String) {
+        if prioritizedCardID == cardID {
+            prioritizedCardID = nil
         }
     }
 

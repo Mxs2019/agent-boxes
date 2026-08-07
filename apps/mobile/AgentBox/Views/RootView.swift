@@ -47,6 +47,12 @@ struct RootView: View {
                 showSettings = false
             }
         }
+        .onChange(of: model.notificationOpenRequestID) { _, requestID in
+            guard requestID != nil else { return }
+            presentedTimeline = nil
+            showAgents = false
+            showSettings = false
+        }
         .alert(
             "Agent Box",
             isPresented: Binding(

@@ -1,7 +1,7 @@
 import { env } from "cloudflare:workers";
 import { applyD1Migrations, type D1Migration } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
-import { alertForMessages, sendAccountUpdate, type PushConfiguration } from "../src/push";
+import { alertsForMessages, sendAccountUpdate, type PushConfiguration } from "../src/push";
 import type { CardUpdateMessage } from "../src/types";
 
 const testEnv = env as Env & { TEST_MIGRATIONS: D1Migration[] };
@@ -56,11 +56,13 @@ describe("APNs delivery", () => {
       },
     ] as unknown as Array<Message<CardUpdateMessage>>;
 
-    expect(alertForMessages(messages)).toEqual({
-      body: "First line. Second line.",
-      cardId: "card_private",
-      title: "Private card title",
-    });
+    expect(alertsForMessages(messages)).toEqual([
+      {
+        body: "First line. Second line.",
+        cardId: "card_private",
+        title: "Private card title",
+      },
+    ]);
   });
 
   it("uses generic text when an older queued message has no card text", () => {
@@ -73,11 +75,13 @@ describe("APNs delivery", () => {
       },
     ] as unknown as Array<Message<CardUpdateMessage>>;
 
-    expect(alertForMessages(messages)).toEqual({
-      body: "A new card is ready.",
-      cardId: "card_legacy",
-      title: "Agent Box",
-    });
+    expect(alertsForMessages(messages)).toEqual([
+      {
+        body: "A new card is ready.",
+        cardId: "card_legacy",
+        title: "Agent Box",
+      },
+    ]);
   });
 
   it("truncates a long card preview", () => {
@@ -91,9 +95,37 @@ describe("APNs delivery", () => {
       },
     ] as unknown as Array<Message<CardUpdateMessage>>;
 
-    const alert = alertForMessages(messages);
+    const [alert] = alertsForMessages(messages);
+    expect(alert).toBeDefined();
+    if (!alert) throw new Error("The push alert is missing.");
     expect(alert.body).toHaveLength(160);
     expect(alert.body.endsWith("…")).toBe(true);
+  });
+
+  it("makes one alert for each card in a queue batch", () => {
+    const messages = [
+      {
+        body: {
+          account_id: "account_push",
+          card_id: "card_first",
+          preview: "First preview",
+          title: "First card",
+        },
+      },
+      {
+        body: {
+          account_id: "account_push",
+          card_id: "card_second",
+          preview: "Second preview",
+          title: "Second card",
+        },
+      },
+    ] as unknown as Array<Message<CardUpdateMessage>>;
+
+    expect(alertsForMessages(messages)).toEqual([
+      { body: "First preview", cardId: "card_first", title: "First card" },
+      { body: "Second preview", cardId: "card_second", title: "Second card" },
+    ]);
   });
 
   it("sends a visible new-card alert with token authentication", async () => {
@@ -132,7 +164,7 @@ describe("APNs delivery", () => {
     expect(headers.get("apns-push-type")).toBe("alert");
     expect(headers.get("apns-priority")).toBe("10");
     expect(headers.get("apns-topic")).toBe("cc.agentboxes");
-    expect(headers.get("apns-collapse-id")).toBe("agent-box-cards");
+    expect(headers.get("apns-collapse-id")).toBe("card_test");
     expect(Number(headers.get("apns-expiration"))).toBeGreaterThan(Math.floor(Date.now() / 1000));
     expect(JSON.parse(String(receivedInit?.body))).toEqual({
       aps: {

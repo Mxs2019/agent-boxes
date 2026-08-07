@@ -25,10 +25,12 @@ copy, replace, or revoke its key. Each inbox page shows its random address and c
 
 ## Background updates
 
-The app registers with APNs at each launch. A visible new-card notification also requests a
-cursor-based background synchronization. The app synchronizes once per minute while it is open. A
-discretionary iOS background refresh runs as a backup and has a six-hour minimum delay. iOS selects
-the actual start time. The app also synchronizes each time it becomes active.
+The app registers with APNs at each launch. Each card gets a visible notification. A notification
+tap synchronizes the cards, restores the selected card when it is not active, and puts it at the top
+of the deck. A visible notification also requests a cursor-based background synchronization. The
+app synchronizes once per minute while it is open. A discretionary iOS background refresh runs as a
+backup and has a six-hour minimum delay. iOS selects the actual start time. The app also synchronizes
+each time it becomes active.
 
 For a signed device build, enable these capabilities for the `AgentBox` target:
 

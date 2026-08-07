@@ -484,12 +484,17 @@ async function handleClear(request: Request, env: Env, cardId: string): Promise<
 
 async function handleRestore(request: Request, env: Env, cardId: string): Promise<Response> {
   const account = await authenticateAccount(request, env.DB);
+  const restoredAt = Math.floor(Date.now() / 1000);
   let card = await env.DB.prepare(
-    `UPDATE cards SET cleared_at = NULL, show_at = NULL
-     WHERE id = ?1 AND account_id = ?2 AND (cleared_at IS NOT NULL OR show_at IS NOT NULL)
+    `UPDATE cards
+     SET cleared_at = NULL,
+         show_at = NULL,
+         expires_at = CASE WHEN expires_at <= ?1 THEN NULL ELSE expires_at END
+     WHERE id = ?2 AND account_id = ?3
+       AND (cleared_at IS NOT NULL OR show_at IS NOT NULL OR expires_at <= ?1)
      RETURNING *`,
   )
-    .bind(cardId, account.id)
+    .bind(restoredAt, cardId, account.id)
     .first<CardRow>();
 
   card ??= await env.DB.prepare("SELECT * FROM cards WHERE id = ?1 AND account_id = ?2")
@@ -498,7 +503,13 @@ async function handleRestore(request: Request, env: Env, cardId: string): Promis
   if (!card) throw new HttpError(404, "card_not_found", "The card does not exist.");
 
   log("card_restored", { card_id: card.id, account_id: account.id });
-  return json({ id: card.id, cleared_at: toCard(card).cleared_at, show_at: toCard(card).show_at });
+  const restored = toCard(card);
+  return json({
+    id: card.id,
+    cleared_at: restored.cleared_at,
+    show_at: restored.show_at,
+    expires_at: restored.expires_at,
+  });
 }
 
 async function handleCreateFeedback(request: Request, env: Env, cardId: string): Promise<Response> {

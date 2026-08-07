@@ -105,7 +105,8 @@ These requests need the account key:
 - `GET /v1/sync?after={cursor}&limit={limit}` returns changed cards, a cursor, `has_more`, and
   `server_time`. The default limit is 200 and the maximum is 500.
 - `POST /v1/cards/{card_id}/clear` clears a card.
-- `POST /v1/cards/{card_id}/restore` restores a card.
+- `POST /v1/cards/{card_id}/restore` restores a card. It removes a past expiration time, but it keeps
+  a future expiration time.
 - `POST /v1/devices` registers an installation and its APNs environment:
   `{ "id": "installation-id", "apns_token": "token", "apns_environment": "production" }`.
 - `DELETE /v1/devices/{installation_id}` removes the installation.

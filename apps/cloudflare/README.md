@@ -81,14 +81,13 @@ deployment. Do not commit a real deployment identifier.
 
 ## APNs background updates
 
-The card-update queue combines new-card events by account. Its consumer sends a visible APNs alert
-to each current device, sets the current active-card badge count, and asks iOS to refresh the cards
-in the background. APNs keeps one collapsed notification for the app for up to one hour. The iOS app
-downloads all changes after its local cursor.
+The card-update queue sends one visible APNs alert for each card to each current device. Each alert
+sets the current active-card badge count and asks iOS to refresh the cards in the background. A
+retry for the same card replaces its earlier notification. The iOS app downloads all changes after
+its local cursor.
 
-The visible alert shows the card title and a short plain-text preview on the lock screen. A grouped
-alert uses generic text. Users must control lock-screen preview access in the iOS notification
-settings when card content is sensitive.
+The visible alert shows the card title and a short plain-text preview on the lock screen. Users must
+control lock-screen preview access in the iOS notification settings when card content is sensitive.
 
 Enable Push Notifications for the `cc.agentboxes` App ID. Create an APNs authentication key in
 the Apple Developer portal. Record its Key ID and the Apple Team ID. Download its `.p8` private key
