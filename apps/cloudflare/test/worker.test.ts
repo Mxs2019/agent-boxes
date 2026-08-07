@@ -8,12 +8,32 @@ const TOKEN = "ab_account_" + "test".repeat(8);
 const testEnv = env as Env & { TEST_MIGRATIONS: D1Migration[] };
 let agentKey = "";
 let agentId = "";
+let mcpAccountKey = "";
+let mcpAgentKey = "";
+let mcpAgentId = "";
 
 async function call(path: string, init?: RequestInit): Promise<Response> {
   const request = new Request(`https://cards.example.com${path}`, init) as Parameters<
     typeof worker.fetch
   >[0];
   return worker.fetch(request, testEnv);
+}
+
+async function mcp(
+  message: Record<string, unknown>,
+  options: { key?: string; protocolVersion?: string; headers?: Record<string, string> } = {},
+): Promise<Response> {
+  return call("/mcp", {
+    method: "POST",
+    headers: {
+      accept: "application/json, text/event-stream",
+      authorization: `Bearer ${options.key ?? mcpAgentKey ?? agentKey}`,
+      "content-type": "application/json",
+      ...(options.protocolVersion ? { "mcp-protocol-version": options.protocolVersion } : {}),
+      ...options.headers,
+    },
+    body: JSON.stringify(message),
+  });
 }
 
 async function deliverEmail(
@@ -90,6 +110,241 @@ describe("response security", () => {
     expect(response.headers.get("strict-transport-security")).toContain("max-age=63072000");
     expect(response.headers.get("x-frame-options")).toBe("DENY");
     expect(await response.text()).toContain("HTML is the new markdown.");
+  });
+});
+
+describe("agent MCP server", () => {
+  beforeAll(async () => {
+    mcpAccountKey = "ab_account_" + "mcp1".repeat(8);
+    await testEnv.DB.prepare(
+      "INSERT INTO accounts (id, account_key_hash, created_at) VALUES (?1, ?2, ?3)",
+    )
+      .bind("account_mcp", await hashToken(mcpAccountKey), Math.floor(Date.now() / 1000))
+      .run();
+    const response = await call("/v1/agents", {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${mcpAccountKey}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ name: "mcp-test-agent" }),
+    });
+    const creation = await response.json<{
+      agent: { id: string };
+      agent_key: string;
+      mcp_url: string;
+    }>();
+    mcpAgentId = creation.agent.id;
+    mcpAgentKey = creation.agent_key;
+    expect(creation.mcp_url).toBe("https://cards.example.com/mcp");
+  });
+
+  it("negotiates the MCP lifecycle and lists agent tools", async () => {
+    const initialized = await mcp({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "initialize",
+      params: {
+        protocolVersion: "2025-11-25",
+        capabilities: {},
+        clientInfo: { name: "test-client", version: "1.0.0" },
+      },
+    });
+    expect(initialized.status).toBe(200);
+    expect(initialized.headers.get("content-type")).toContain("application/json");
+    expect(initialized.headers.get("mcp-session-id")).toBeNull();
+    expect(await initialized.json()).toMatchObject({
+      jsonrpc: "2.0",
+      id: 1,
+      result: {
+        protocolVersion: "2025-11-25",
+        capabilities: { tools: {} },
+        serverInfo: { name: "agent-box" },
+      },
+    });
+
+    const notification = await mcp(
+      { jsonrpc: "2.0", method: "notifications/initialized" },
+      { protocolVersion: "2025-11-25" },
+    );
+    expect(notification.status).toBe(202);
+    expect(await notification.text()).toBe("");
+
+    const listed = await mcp(
+      { jsonrpc: "2.0", id: "tools", method: "tools/list", params: {} },
+      { protocolVersion: "2025-11-25" },
+    );
+    expect(listed.status).toBe(200);
+    const listBody = await listed.json<{
+      result: { tools: Array<{ name: string; inputSchema: Record<string, unknown> }> };
+    }>();
+    expect(listBody.result.tools.map((tool) => tool.name)).toEqual([
+      "send_card",
+      "list_feedback",
+      "resolve_feedback",
+    ]);
+    expect(listBody.result.tools.every((tool) => tool.inputSchema.type === "object")).toBe(true);
+  });
+
+  it("sends cards and reports tool input errors as MCP tool errors", async () => {
+    const sent = await mcp(
+      {
+        jsonrpc: "2.0",
+        id: 2,
+        method: "tools/call",
+        params: {
+          name: "send_card",
+          arguments: {
+            title: "3 updates · 1 needs review",
+            html: "<h2>MCP card</h2><p>Sent through a tool.</p>",
+            expires_in: "2h",
+            idempotency_key: "mcp-send-test",
+          },
+        },
+      },
+      { protocolVersion: "2025-11-25" },
+    );
+    expect(sent.status).toBe(200);
+    const sentBody = await sent.json<{
+      result: {
+        isError: boolean;
+        content: Array<{ type: string; text: string }>;
+        structuredContent: { id: string; created: boolean };
+      };
+    }>();
+    expect(sentBody.result.isError).toBe(false);
+    expect(sentBody.result.structuredContent).toMatchObject({ created: true });
+    expect(sentBody.result.structuredContent.id).toMatch(/^card_[A-Z0-9]+$/);
+    expect(sentBody.result.content[0].text).toContain(sentBody.result.structuredContent.id);
+
+    const invalid = await mcp(
+      {
+        jsonrpc: "2.0",
+        id: 3,
+        method: "tools/call",
+        params: { name: "send_card", arguments: { html: 42 } },
+      },
+      { protocolVersion: "2025-11-25" },
+    );
+    expect(await invalid.json()).toMatchObject({
+      jsonrpc: "2.0",
+      id: 3,
+      result: { isError: true },
+    });
+  });
+
+  it("lists and resolves only feedback for the authenticated agent", async () => {
+    const cardResponse = await mcp(
+      {
+        jsonrpc: "2.0",
+        id: 4,
+        method: "tools/call",
+        params: {
+          name: "send_card",
+          arguments: { html: "<p>Review this MCP feedback card.</p>" },
+        },
+      },
+      { protocolVersion: "2025-11-25" },
+    );
+    const cardBody = await cardResponse.json<{
+      result: { structuredContent: { id: string } };
+    }>();
+    const feedbackResponse = await call(
+      `/v1/cards/${cardBody.result.structuredContent.id}/feedback`,
+      {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${mcpAccountKey}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ comment: "Make the result shorter." }),
+      },
+    );
+    const feedbackBody = await feedbackResponse.json<{ feedback: { id: string } }>();
+
+    const listed = await mcp(
+      {
+        jsonrpc: "2.0",
+        id: 5,
+        method: "tools/call",
+        params: { name: "list_feedback", arguments: { status: "unresolved" } },
+      },
+      { protocolVersion: "2025-11-25" },
+    );
+    const listBody = await listed.json<{
+      result: { structuredContent: { feedback: Array<{ id: string }> } };
+    }>();
+    expect(listBody.result.structuredContent.feedback).toContainEqual({
+      id: feedbackBody.feedback.id,
+      card_id: cardBody.result.structuredContent.id,
+      agent_id: mcpAgentId,
+      agent_name: "mcp-test-agent",
+      comment: "Make the result shorter.",
+      card_title: null,
+      card_html: "<p>Review this MCP feedback card.</p>",
+      created_at: expect.any(String),
+      updated_at: expect.any(String),
+      resolved_at: null,
+    });
+
+    const resolved = await mcp(
+      {
+        jsonrpc: "2.0",
+        id: 6,
+        method: "tools/call",
+        params: {
+          name: "resolve_feedback",
+          arguments: { feedback_id: feedbackBody.feedback.id },
+        },
+      },
+      { protocolVersion: "2025-11-25" },
+    );
+    expect(await resolved.json()).toMatchObject({
+      result: {
+        isError: false,
+        structuredContent: {
+          feedback: { id: feedbackBody.feedback.id, resolved_at: expect.any(String) },
+        },
+      },
+    });
+  });
+
+  it("enforces the Streamable HTTP transport and agent authentication", async () => {
+    const noKey = await call("/mcp", {
+      method: "POST",
+      headers: {
+        accept: "application/json, text/event-stream",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "ping" }),
+    });
+    expect(noKey.status).toBe(401);
+
+    const badOrigin = await mcp(
+      { jsonrpc: "2.0", id: 1, method: "ping" },
+      { headers: { origin: "https://other.example.com" } },
+    );
+    expect(badOrigin.status).toBe(403);
+
+    const badAccept = await mcp(
+      { jsonrpc: "2.0", id: 1, method: "ping" },
+      { headers: { accept: "application/json" } },
+    );
+    expect(badAccept.status).toBe(406);
+
+    const badVersion = await mcp(
+      { jsonrpc: "2.0", id: 1, method: "ping" },
+      { protocolVersion: "2024-11-05" },
+    );
+    expect(badVersion.status).toBe(400);
+
+    const getResponse = await call("/mcp", {
+      headers: {
+        accept: "text/event-stream",
+        authorization: `Bearer ${mcpAgentKey}`,
+      },
+    });
+    expect(getResponse.status).toBe(405);
   });
 });
 
@@ -268,7 +523,7 @@ describe("account deletion", () => {
 });
 
 describe("account creation", () => {
-  it("creates an empty account and returns its key one time", async () => {
+  it("creates an account with onboarding cards and returns its key one time", async () => {
     const response = await call("/v1/accounts", {
       method: "POST",
     });
@@ -288,11 +543,161 @@ describe("account creation", () => {
     const resources = await testEnv.DB.prepare(
       `SELECT
          (SELECT COUNT(*) FROM agents WHERE account_id = ?1) AS agent_count,
-         (SELECT COUNT(*) FROM inboxes WHERE account_id = ?1) AS inbox_count`,
+         (SELECT COUNT(*) FROM inboxes WHERE account_id = ?1) AS inbox_count,
+         (SELECT COUNT(*) FROM cards WHERE account_id = ?1) AS card_count`,
     )
       .bind(stored?.id)
-      .first<{ agent_count: number; inbox_count: number }>();
-    expect(resources).toEqual({ agent_count: 0, inbox_count: 0 });
+      .first<{ agent_count: number; inbox_count: number; card_count: number }>();
+    expect(resources).toEqual({ agent_count: 1, inbox_count: 0, card_count: 5 });
+
+    const systemAgent = await testEnv.DB.prepare(
+      "SELECT name, is_system FROM agents WHERE account_id = ?1",
+    )
+      .bind(stored?.id)
+      .first<{ name: string; is_system: number }>();
+    expect(systemAgent).toEqual({ name: "Agent Box", is_system: 1 });
+
+    const agentList = await call("/v1/agents", {
+      headers: { authorization: `Bearer ${result.account_key}` },
+    });
+    expect(await agentList.json()).toEqual({ agents: [] });
+
+    const sync = await call("/v1/sync?after=0", {
+      headers: { authorization: `Bearer ${result.account_key}` },
+    });
+    const body = await sync.json<{
+      cards: Array<{
+        title: string;
+        source: string;
+        source_name: string;
+        agent_id: string | null;
+        expires_at: string | null;
+        content_trust: string;
+        metadata: Record<string, unknown>;
+      }>;
+    }>();
+    expect(body.cards.map((card) => card.title)).toEqual([
+      "Onboarding Cards · Step 1 of 5",
+      "Onboarding Cards · Step 2 of 5",
+      "Onboarding Cards · Step 3 of 5",
+      "Onboarding Cards · Step 4 of 5",
+      "Onboarding Cards · Step 5 of 5",
+    ]);
+    expect(
+      body.cards.map((card) => ({
+        source: card.source,
+        source_name: card.source_name,
+        expires_at: card.expires_at,
+        content_trust: card.content_trust,
+      })),
+    ).toEqual(
+      Array.from({ length: 5 }, () => ({
+        source: "system",
+        source_name: "Agent Box",
+        expires_at: null,
+        content_trust: "trusted",
+      })),
+    );
+    for (const card of body.cards) {
+      expect(card.agent_id).toMatch(/^agent_[A-Z0-9]+$/);
+    }
+    expect(body.cards.map((card) => card.metadata.onboarding_position)).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it("replaces active onboarding cards with a fresh ordered set", async () => {
+    const account = await call("/v1/accounts", { method: "POST" });
+    const { account_key: accountKey } = await account.json<{ account_key: string }>();
+    const firstSync = await call("/v1/sync?after=0", {
+      headers: { authorization: `Bearer ${accountKey}` },
+    });
+    const firstBody = await firstSync.json<{
+      cards: Array<{ id: string }>;
+      cursor: number;
+    }>();
+
+    const reset = await call("/v1/onboarding/reset", {
+      method: "POST",
+      headers: { authorization: `Bearer ${accountKey}` },
+    });
+    expect(reset.status).toBe(201);
+    const resetBody = await reset.json<{ cards: Array<{ id: string; sequence: number }> }>();
+    expect(resetBody.cards).toHaveLength(5);
+    expect(resetBody.cards.map((card) => card.sequence)).toEqual(
+      [...resetBody.cards.map((card) => card.sequence)].sort((a, b) => a - b),
+    );
+
+    const changed = await call(`/v1/sync?after=${firstBody.cursor}`, {
+      headers: { authorization: `Bearer ${accountKey}` },
+    });
+    const changedBody = await changed.json<{
+      cards: Array<{ id: string; cleared_at: string | null; metadata: Record<string, unknown> }>;
+    }>();
+    expect(changedBody.cards).toHaveLength(10);
+    expect(
+      changedBody.cards
+        .filter((card) => firstBody.cards.some((original) => original.id === card.id))
+        .every((card) => card.cleared_at !== null),
+    ).toBe(true);
+    expect(
+      changedBody.cards
+        .filter((card) => resetBody.cards.some((fresh) => fresh.id === card.id))
+        .every((card) => card.cleared_at === null && card.metadata.onboarding === 1),
+    ).toBe(true);
+  });
+
+  it("requires an account key to reset onboarding", async () => {
+    const response = await call("/v1/onboarding/reset", { method: "POST" });
+    expect(response.status).toBe(401);
+  });
+
+  it("accepts feedback on onboarding cards through the hidden system agent", async () => {
+    const account = await call("/v1/accounts", { method: "POST" });
+    const { account_key: accountKey } = await account.json<{ account_key: string }>();
+    const sync = await call("/v1/sync?after=0", {
+      headers: { authorization: `Bearer ${accountKey}` },
+    });
+    const { cards } = await sync.json<{ cards: Array<{ id: string; agent_id: string }> }>();
+
+    const created = await call(`/v1/cards/${cards[3].id}/feedback`, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${accountKey}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ comment: "The onboarding cards look great." }),
+    });
+    expect(created.status).toBe(201);
+    expect(await created.json()).toMatchObject({
+      feedback: {
+        card_id: cards[3].id,
+        agent_id: cards[3].agent_id,
+        agent_name: "Agent Box",
+        comment: "The onboarding cards look great.",
+        resolved_at: null,
+      },
+    });
+
+    const listed = await call("/v1/feedback", {
+      headers: { authorization: `Bearer ${accountKey}` },
+    });
+    const listedBody = await listed.json<{ feedback: Array<{ comment: string }> }>();
+    expect(listedBody.feedback.map((item) => item.comment)).toEqual([
+      "The onboarding cards look great.",
+    ]);
+
+    const reset = await call("/v1/onboarding/reset", {
+      method: "POST",
+      headers: { authorization: `Bearer ${accountKey}` },
+    });
+    expect(reset.status).toBe(201);
+    const agentCount = await testEnv.DB.prepare(
+      `SELECT COUNT(*) AS count FROM agents
+       WHERE is_system = 1 AND account_id =
+         (SELECT account_id FROM cards WHERE id = ?1)`,
+    )
+      .bind(cards[3].id)
+      .first<{ count: number }>();
+    expect(agentCount?.count).toBe(1);
   });
 });
 
@@ -829,7 +1234,9 @@ describe("agent management", () => {
     const temporary = await createdAgent.json<{
       agent: { id: string };
       agent_key: string;
+      mcp_url: string;
     }>();
+    expect(temporary.mcp_url).toBe("https://cards.example.com/mcp");
 
     const createdCard = await call("/v1/cards", {
       method: "POST",

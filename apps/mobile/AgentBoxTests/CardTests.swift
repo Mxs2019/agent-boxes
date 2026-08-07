@@ -605,6 +605,11 @@ final class CardTests: XCTestCase {
                 "POST https://api.agentboxes.cc/v1/cards"
             )
         )
+        XCTAssertTrue(model.agentInstructions.contains("https://api.agentboxes.cc/mcp"))
+        XCTAssertTrue(model.agentInstructions.contains("Streamable HTTP"))
+        XCTAssertTrue(model.agentInstructions.contains("send_card"))
+        XCTAssertTrue(model.agentInstructions.contains("list_feedback"))
+        XCTAssertTrue(model.agentInstructions.contains("resolve_feedback"))
         XCTAssertTrue(model.agentInstructions.contains("Authorization: Bearer YOUR_AGENT_KEY"))
         XCTAssertTrue(model.agentInstructions.contains("JavaScript"))
         XCTAssertTrue(model.agentInstructions.contains("no network requests"))
@@ -626,6 +631,15 @@ final class CardTests: XCTestCase {
         XCTAssertTrue(model.agentInstructions.contains("Idempotency-Key"))
         XCTAssertFalse(model.agentInstructions.contains("source_name"))
         XCTAssertFalse(model.agentInstructions.contains("preview-account-key"))
+        XCTAssertEqual(
+            model.agentMCPConnection(agentKey: "ab_agent_test"),
+            """
+            Agent Box MCP
+            URL: https://api.agentboxes.cc/mcp
+            Transport: Streamable HTTP
+            Authorization: Bearer ab_agent_test
+            """
+        )
     }
 
     @MainActor

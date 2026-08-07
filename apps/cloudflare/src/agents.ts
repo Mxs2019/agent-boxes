@@ -42,9 +42,9 @@ function cleanName(rawName: unknown): string {
 async function findAgent(db: D1Database, account: AccountRow, agentId: string): Promise<AgentRow> {
   const agent = await db
     .prepare(
-      `SELECT id, account_id, name, api_key_hash, api_key_encrypted, api_key_hint,
+      `SELECT id, account_id, name, api_key_hash, api_key_encrypted, api_key_hint, is_system,
               created_at, last_used_at, revoked_at
-       FROM agents WHERE id = ?1 AND account_id = ?2`,
+       FROM agents WHERE id = ?1 AND account_id = ?2 AND is_system = 0`,
     )
     .bind(agentId, account.id)
     .first<AgentRow>();
@@ -60,7 +60,9 @@ export async function createAgent(
 ): Promise<{ agent: Agent; agentKey: string }> {
   const name = cleanName(rawName);
   const activeCount = await db
-    .prepare("SELECT COUNT(*) AS count FROM agents WHERE account_id = ?1 AND revoked_at IS NULL")
+    .prepare(
+      "SELECT COUNT(*) AS count FROM agents WHERE account_id = ?1 AND revoked_at IS NULL AND is_system = 0",
+    )
     .bind(account.id)
     .first<{ count: number }>();
   if ((activeCount?.count ?? 0) >= 100) {
@@ -102,13 +104,69 @@ export async function createAgent(
   }
 }
 
+const SYSTEM_AGENT_NAMES = ["Agent Box", "Agent Box (system)"] as const;
+
+/**
+ * Finds or creates the account's hidden system agent. Onboarding cards attach
+ * to it so the feedback flow works before the user creates a real agent. Its
+ * key is generated and discarded — nothing can authenticate as this agent.
+ */
+export async function ensureSystemAgent(
+  db: D1Database,
+  account: AccountRow,
+  encryptionSecret: string,
+): Promise<string> {
+  const existing = await db
+    .prepare(
+      `SELECT id FROM agents
+       WHERE account_id = ?1 AND is_system = 1 AND revoked_at IS NULL
+       ORDER BY created_at ASC LIMIT 1`,
+    )
+    .bind(account.id)
+    .first<{ id: string }>();
+  if (existing) return existing.id;
+
+  const createdAt = Math.floor(Date.now() / 1000);
+  let lastError: unknown = null;
+  for (const name of SYSTEM_AGENT_NAMES) {
+    const id = `agent_${ulid()}`;
+    const agentKey = generateAgentKey();
+    try {
+      const row = await db
+        .prepare(
+          `INSERT INTO agents (
+            id, account_id, name, api_key_hash, api_key_encrypted, api_key_hint,
+            is_system, created_at, last_used_at, revoked_at
+          ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, 1, ?7, NULL, NULL)
+          RETURNING id`,
+        )
+        .bind(
+          id,
+          account.id,
+          name,
+          await hashToken(agentKey),
+          await encryptAgentKey(agentKey, encryptionSecret, id),
+          agentKey.slice(-4),
+          createdAt,
+        )
+        .first<{ id: string }>();
+      if (row) return row.id;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError instanceof Error
+    ? lastError
+    : new Error("The system agent could not be created.");
+}
+
 export async function listAgents(db: D1Database, account: AccountRow): Promise<Agent[]> {
   const rows = await db
     .prepare(
-      `SELECT id, account_id, name, api_key_hash, api_key_encrypted, api_key_hint,
+      `SELECT id, account_id, name, api_key_hash, api_key_encrypted, api_key_hint, is_system,
               created_at, last_used_at, revoked_at
        FROM agents
-       WHERE account_id = ?1
+       WHERE account_id = ?1 AND is_system = 0
        ORDER BY revoked_at IS NOT NULL ASC, created_at DESC
        LIMIT 200`,
     )

@@ -28,7 +28,7 @@
       "binding": "DB",
       "database_name": "agent-box",
       "migrations_dir": "migrations",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "684c4e18-a554-45e1-b425-b3839b40ba6b",
     },
   ],
   "queues": {

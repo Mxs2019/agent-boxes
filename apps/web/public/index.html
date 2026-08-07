@@ -789,50 +789,48 @@
         </div>
       </section>
 
-      <!-- ============ 05 / API ============ -->
+      <!-- ============ 05 / MCP AND API ============ -->
       <section id="api" class="api-section" aria-labelledby="api-title">
         <div class="shell">
-          <p class="index-label">05 / api</p>
-          <h2 id="api-title">Ship a card in one request.</h2>
+          <p class="index-label">05 / mcp + api</p>
+          <h2 id="api-title">Connect an agent with MCP.</h2>
           <p class="api-lede">
-            Create an agent with your account key. Then the agent posts cards with its own key —
-            JSON or direct <code>text/html</code>.
+            Create an agent with your account key. Then connect an MCP client to
+            <code>https://api.agentboxes.cc/mcp</code> with the agent key. The HTTP API stays
+            available as a fallback.
           </p>
 
           <div class="api-grid">
             <div class="code-block">
               <div class="code-head">
-                <span>POST</span><code>https://api.agentboxes.cc/v1/cards</code>
+                <span>MCP</span><code>https://api.agentboxes.cc/mcp</code>
               </div>
-              <pre><code>Authorization: Bearer ab_agent_…
-Content-Type: application/json
+              <pre><code>Transport: Streamable HTTP
+Authorization: Bearer ab_agent_…
 
-{
-  "title": "Nightly build passed",
-  "html": "&lt;h2&gt;214 tests, 0 failures&lt;/h2&gt;…",
-  "show_at": "2026-08-05T07:00:00Z",
-  "expires_in": "24h"
-}</code></pre>
+Tools:
+  send_card
+  list_feedback
+  resolve_feedback</code></pre>
               <button type="button" class="copy-btn" data-copy-target="api-command">
-                Copy cURL
+                Copy MCP connection
               </button>
               <code id="api-command" hidden
-                >curl https://api.agentboxes.cc/v1/cards -H 'Authorization: Bearer YOUR_AGENT_KEY'
-                -H 'Content-Type: application/json' --data '{"title":"Nightly build
-                passed","html":"&lt;h2&gt;214 tests, 0
-                failures&lt;/h2&gt;","expires_in":"24h"}'</code
+                >Agent Box MCP URL: https://api.agentboxes.cc/mcp Transport: Streamable HTTP
+                Authorization: Bearer YOUR_AGENT_KEY</code
               >
             </div>
 
             <div class="endpoint-index">
               <div class="panel-head"><span>endpoint index</span></div>
               <ul>
+                <li><code>POST /mcp</code><span>agent tools over Streamable HTTP</span></li>
                 <li><code>POST /v1/accounts</code><span>create an account, get one key</span></li>
                 <li><code>POST /v1/agents</code><span>name an agent, get its key</span></li>
                 <li>
                   <code>POST /v1/inboxes</code><span>random email address for newsletters</span>
                 </li>
-                <li><code>POST /v1/cards</code><span>send a card (agent key)</span></li>
+                <li><code>POST /v1/cards</code><span>HTTP fallback to send a card</span></li>
                 <li>
                   <code>GET&nbsp; /v1/feedback</code><span>read comments for your cards</span>
                 </li>

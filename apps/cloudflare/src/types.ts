@@ -1,4 +1,4 @@
-export const CARD_SOURCES = ["api", "email"] as const;
+export const CARD_SOURCES = ["api", "email", "system"] as const;
 
 export type CardSource = (typeof CARD_SOURCES)[number];
 
@@ -101,6 +101,7 @@ export interface AgentRow {
   api_key_hash: string;
   api_key_encrypted: string;
   api_key_hint: string;
+  is_system: number;
   created_at: number;
   last_used_at: number | null;
   revoked_at: number | null;

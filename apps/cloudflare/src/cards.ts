@@ -100,11 +100,13 @@ export async function createCard(
   const title = optionalText(input.title, "title", 300);
   const sourceName = optionalText(input.sourceName, "source_name", 300);
   const idempotencyKey = optionalText(input.idempotencyKey, "idempotency_key", 255);
-  const agentId = input.source === "api" ? input.agentId : undefined;
+  // System cards may carry an agent id (the hidden onboarding agent) so the
+  // feedback flow works on them; email cards never have one.
+  const agentId = input.source === "email" ? undefined : input.agentId;
   if (input.source === "api" && !agentId) {
     throw new HttpError(500, "missing_agent", "API cards require an authenticated agent.");
   }
-  const contentTrust = agentId ? "trusted" : "untrusted";
+  const contentTrust = agentId || input.source === "system" ? "trusted" : "untrusted";
 
   if (idempotencyKey) {
     const existing = await findIdempotentCard(db, account, input.source, agentId, idempotencyKey);

@@ -26,6 +26,8 @@ import {
   secureAssetResponse,
 } from "./http";
 import { createInbox, listInboxes, renameInbox, revokeInbox } from "./inboxes";
+import { handleMcp, type McpToolResult } from "./mcp";
+import { resetOnboardingCards } from "./onboarding";
 import { handleCardUpdateBatch, makePushPreview } from "./push";
 import type {
   AccountRow,
@@ -304,6 +306,7 @@ async function handleCreateAgent(request: Request, env: Env): Promise<Response> 
     {
       agent: result.agent,
       agent_key: result.agentKey,
+      mcp_url: `${origin}/mcp`,
       post_url: `${origin}/v1/cards`,
     },
     201,
@@ -320,8 +323,21 @@ async function handleCreateAccount(request: Request, env: Env): Promise<Response
   }
 
   const result = await createAccount(env.DB);
+  try {
+    await resetOnboardingCards(env.DB, result.account, agentKeyEncryptionSecret(env));
+  } catch (error) {
+    await deleteAccount(env.DB, result.account.id);
+    throw error;
+  }
   log("account_created", { account_id: result.account.id });
   return json({ account_key: result.accountKey }, 201);
+}
+
+async function handleResetOnboarding(request: Request, env: Env): Promise<Response> {
+  const account = await authenticateAccount(request, env.DB);
+  const cards = await resetOnboardingCards(env.DB, account, agentKeyEncryptionSecret(env));
+  log("onboarding_reset", { account_id: account.id, card_count: cards.length });
+  return json({ cards: cards.map((card) => ({ id: card.id, sequence: card.sequence })) }, 201);
 }
 
 async function handleListAgents(request: Request, env: Env): Promise<Response> {
@@ -628,16 +644,174 @@ async function handleDeviceRemoval(
   return new Response(null, { status: 204 });
 }
 
+function rejectUnknownToolArguments(
+  argumentsValue: Record<string, unknown>,
+  allowed: readonly string[],
+): void {
+  const unknown = Object.keys(argumentsValue).find((key) => !allowed.includes(key));
+  if (unknown) {
+    throw new HttpError(400, "invalid_tool_arguments", `Unknown tool argument: ${unknown}.`);
+  }
+}
+
+function optionalStringToolArgument(
+  argumentsValue: Record<string, unknown>,
+  name: string,
+): string | undefined {
+  const value = argumentsValue[name];
+  if (value === undefined) return undefined;
+  if (typeof value !== "string") {
+    throw new HttpError(400, "invalid_tool_arguments", `${name} must be a string.`);
+  }
+  return value;
+}
+
+async function invokeAgentMcpTool(
+  request: Request,
+  env: Env,
+  account: AccountRow,
+  agent: { id: string; name: string },
+  name: string,
+  argumentsValue: Record<string, unknown>,
+): Promise<McpToolResult> {
+  if (name === "send_card") {
+    rejectUnknownToolArguments(argumentsValue, [
+      "title",
+      "html",
+      "show_at",
+      "show_in",
+      "expires_in",
+      "expires_at",
+      "idempotency_key",
+      "metadata",
+    ]);
+    if (typeof argumentsValue.html !== "string") {
+      throw new HttpError(400, "invalid_tool_arguments", "html is required and must be a string.");
+    }
+    for (const field of ["show_in", "expires_in"] as const) {
+      const value = argumentsValue[field];
+      if (value !== undefined && typeof value !== "string" && typeof value !== "number") {
+        throw new HttpError(400, "invalid_tool_arguments", `${field} must be a string or number.`);
+      }
+    }
+    const metadata = argumentsValue.metadata;
+    if (
+      metadata !== undefined &&
+      (!metadata || Array.isArray(metadata) || typeof metadata !== "object")
+    ) {
+      throw new HttpError(400, "invalid_tool_arguments", "metadata must be a JSON object.");
+    }
+
+    await enforceIngestionLimits(env, account, agent.id);
+    const result = await createCard(env.DB, account, {
+      title: optionalStringToolArgument(argumentsValue, "title"),
+      html: argumentsValue.html,
+      showAt: optionalStringToolArgument(argumentsValue, "show_at"),
+      showIn: argumentsValue.show_in as string | number | undefined,
+      expiresIn: argumentsValue.expires_in as string | number | undefined,
+      expiresAt: optionalStringToolArgument(argumentsValue, "expires_at"),
+      source: "api",
+      sourceName: agent.name,
+      agentId: agent.id,
+      idempotencyKey: optionalStringToolArgument(argumentsValue, "idempotency_key"),
+      metadata: metadata as Record<string, unknown> | undefined,
+    });
+    const { card } = result;
+    if (result.created) {
+      await env.CARD_UPDATE_QUEUE.send({
+        account_id: account.id,
+        card_id: card.id,
+        preview: makePushPreview(card.plain_text),
+        source_name: card.source_name,
+        title: card.title,
+      });
+    }
+    log("card_created", {
+      card_id: card.id,
+      account_id: account.id,
+      agent_id: agent.id,
+      source: "mcp",
+    });
+    return {
+      structuredContent: {
+        id: card.id,
+        sequence: card.sequence,
+        created_at: card.created_at,
+        show_at: card.show_at,
+        expires_at: card.expires_at,
+        created: result.created,
+      },
+    };
+  }
+
+  if (name === "list_feedback") {
+    rejectUnknownToolArguments(argumentsValue, ["status"]);
+    const status = optionalStringToolArgument(argumentsValue, "status") ?? "unresolved";
+    const feedbackURL = new URL("/v1/feedback", request.url);
+    feedbackURL.searchParams.set("status", status);
+    const feedbackRequest = new Request(feedbackURL, {
+      headers: request.headers,
+      method: "GET",
+    });
+    return { structuredContent: { feedback: await listFeedback(feedbackRequest, env.DB) } };
+  }
+
+  if (name === "resolve_feedback") {
+    rejectUnknownToolArguments(argumentsValue, ["feedback_id"]);
+    const feedbackId = optionalStringToolArgument(argumentsValue, "feedback_id");
+    if (!feedbackId || !/^feedback_[A-Z0-9]+$/.test(feedbackId)) {
+      throw new HttpError(
+        400,
+        "invalid_tool_arguments",
+        "feedback_id is required and must be a feedback ID.",
+      );
+    }
+    return {
+      structuredContent: { feedback: await resolveFeedback(request, env.DB, feedbackId) },
+    };
+  }
+
+  throw new HttpError(400, "unknown_tool", `Unknown tool: ${name}`);
+}
+
+async function handleAgentMcp(request: Request, env: Env): Promise<Response> {
+  let authentication:
+    | Promise<{ account: AccountRow; agent: { id: string; name: string } }>
+    | undefined;
+  const authenticate = () => {
+    authentication ??= (async () => {
+      await enforceAgentAuthenticationLimit(request, env);
+      return authenticateAgent(request, env.DB);
+    })();
+    return authentication;
+  };
+  return handleMcp(request, {
+    authenticate: async () => {
+      await authenticate();
+    },
+    instructions:
+      "Use send_card to deliver self-contained HTML cards. Use list_feedback and resolve_feedback to act on user comments for cards from this agent.",
+    invokeTool: async (name, argumentsValue) => {
+      const { account, agent } = await authenticate();
+      return invokeAgentMcpTool(request, env, account, agent, name, argumentsValue);
+    },
+  });
+}
+
 async function route(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
   const path = url.pathname.replace(/\/+$/, "") || "/";
 
   if (request.method === "GET" && path === "/health") return json({ status: "ok" });
+  if (path === "/mcp") return handleAgentMcp(request, env);
   if (request.method === "POST" && path === "/v1/accounts") {
     return handleCreateAccount(request, env);
   }
   if (request.method === "DELETE" && path === "/v1/account") {
     return handleDeleteAccount(request, env);
+  }
+  if (request.method === "POST" && path === "/v1/onboarding/reset") {
+    return handleResetOnboarding(request, env);
   }
   if (request.method === "POST" && path === "/v1/cards") {
     return handleCreateCard(request, env);

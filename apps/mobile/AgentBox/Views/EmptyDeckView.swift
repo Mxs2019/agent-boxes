@@ -25,17 +25,20 @@ struct EmptyDeckView: View {
     private let bottomContentInset: CGFloat
     private let artworkOpacity: Double
     private let showsContent: Bool
+    private let openHistory: () -> Void
 
     init(
         photoName: String? = nil,
         bottomContentInset: CGFloat = 0,
         artworkOpacity: Double = 1,
-        showsContent: Bool = true
+        showsContent: Bool = true,
+        openHistory: @escaping () -> Void = {}
     ) {
         photoNameOverride = photoName
         self.bottomContentInset = bottomContentInset
         self.artworkOpacity = artworkOpacity
         self.showsContent = showsContent
+        self.openHistory = openHistory
     }
 
     var body: some View {
@@ -85,26 +88,27 @@ struct EmptyDeckView: View {
                         .font(.body)
                         .foregroundStyle(.white.opacity(0.82))
 
-                    if !model.cards.isEmpty {
-                        Button {
-                            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-                            model.resetDeckForTesting()
-                        } label: {
-                            Label("Reset deck", systemImage: "arrow.counterclockwise")
-                                .font(.subheadline.weight(.semibold))
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 10)
-                        }
-                        .buttonStyle(.plain)
-                        .foregroundStyle(.white)
-                        .background(.ultraThinMaterial, in: Capsule())
-                        .overlay {
-                            Capsule().strokeBorder(.white.opacity(0.28), lineWidth: 1)
-                        }
-                        .accessibilityHint("Returns all local cards to the active deck for testing.")
-                        .accessibilityIdentifier("reset-deck")
-                        .padding(.top, 4)
+                    Button {
+                        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                        openHistory()
+                    } label: {
+                        Label(
+                            "View history",
+                            systemImage: CardTimelineSection.history.systemImage
+                        )
+                        .font(.subheadline.weight(.semibold))
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
                     }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.white)
+                    .background(.ultraThinMaterial, in: Capsule())
+                    .overlay {
+                        Capsule().strokeBorder(.white.opacity(0.28), lineWidth: 1)
+                    }
+                    .accessibilityHint("Shows reviewed cards.")
+                    .accessibilityIdentifier("empty-history-button")
+                    .padding(.top, 4)
                 }
                 .multilineTextAlignment(.center)
                 .shadow(color: .black.opacity(0.3), radius: 12, y: 3)

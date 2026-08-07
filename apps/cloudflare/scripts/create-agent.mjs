@@ -26,4 +26,6 @@ const result = await response.json();
 console.log(`Agent: ${result.agent.name}`);
 console.log(`Agent ID: ${result.agent.id}`);
 console.log(`Agent key: ${result.agent_key}`);
+console.log(`MCP URL: ${result.mcp_url}`);
+console.log("MCP transport: Streamable HTTP");
 console.log("You can view or replace this key later with the account key.");

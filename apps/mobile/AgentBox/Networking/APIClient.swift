@@ -140,6 +140,13 @@ struct APIClient: Sendable {
         _ = try await sendAuthenticated(request)
     }
 
+    func resetOnboarding() async throws {
+        let url = baseURL.appendingPathComponent("v1/onboarding/reset")
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        _ = try await sendAuthenticated(request)
+    }
+
     func listAgents() async throws -> [Agent] {
         let url = baseURL.appendingPathComponent("v1/agents")
         let data = try await sendAuthenticated(URLRequest(url: url))

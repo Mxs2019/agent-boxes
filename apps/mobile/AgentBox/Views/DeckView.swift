@@ -44,7 +44,8 @@ struct DeckView: View {
                                 artworkOpacity: emptyArtworkOpacity(
                                     in: geometry.size.width
                                 ),
-                                showsContent: showsEmptyDeckContent
+                                showsContent: showsEmptyDeckContent,
+                                openHistory: { openTimeline(.history) }
                             )
                                 .allowsHitTesting(presentedCards.isEmpty)
                                 .accessibilityHidden(!presentedCards.isEmpty)
@@ -107,7 +108,7 @@ struct DeckView: View {
                 Button {
                     openTimeline(.history)
                 } label: {
-                    Image(systemName: "rectangle.stack")
+                    Image(systemName: CardTimelineSection.history.systemImage)
                 }
                 .accessibilityLabel("History")
                 .accessibilityIdentifier("history-button")

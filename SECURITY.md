@@ -16,10 +16,15 @@ the account key one time and stores only its SHA-256 hash. This key protects syn
 actions, device registration, and management of agents and inboxes. The service cannot recover a
 lost account key.
 
-Each named agent has a separate `ab_agent_…` key for `POST /v1/cards`. D1 stores its SHA-256 hash, an
-encrypted copy, and a four-character hint. The Worker uses AES-GCM and a deployment secret to
-encrypt the copy. An account-key holder can view or replace an active agent key. Revocation blocks
-new cards and changes that agent's earlier cards to restricted mode during the next client sync.
+Each named agent has a separate `ab_agent_…` key for the MCP server and `POST /v1/cards`. D1 stores
+its SHA-256 hash, an encrypted copy, and a four-character hint. The Worker uses AES-GCM and a
+deployment secret to encrypt the copy. An account-key holder can view or replace an active agent
+key. Revocation blocks new cards, MCP tool calls, and feedback access. It also changes that agent's
+earlier cards to restricted mode during the next client sync.
+
+The MCP endpoint accepts the agent key only in an `Authorization` header. It does not accept a key
+in the URL. It rejects a cross-origin `Origin` header, uses no server session, and does not open an
+SSE stream. Treat an MCP client configuration as a secret because it contains the agent key.
 
 Each named email inbox has a random address. The address is visible and can be revoked, so it is a
 routing value and not an account credential.

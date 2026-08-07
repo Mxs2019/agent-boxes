@@ -24,7 +24,11 @@ npm run cloudflare:account:create
 AGENT_BOX_ACCOUNT_KEY='YOUR_ACCOUNT_KEY' npm run cloudflare:agent:create -- 'Research agent'
 ```
 
-Create a card:
+Connect an MCP client to `http://127.0.0.1:8787/mcp` with the Streamable HTTP transport. Configure
+the `Authorization` header as `Bearer YOUR_AGENT_KEY`. The server provides `send_card`,
+`list_feedback`, and `resolve_feedback` tools.
+
+Clients that do not support MCP can create a card with the HTTP fallback:
 
 ```sh
 curl -X POST http://127.0.0.1:8787/v1/cards \

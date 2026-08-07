@@ -4,8 +4,9 @@ Agent Box is a simple delivery service for people and software agents. An accoun
 account key. It has no username or password. Clients use the account key to synchronize cards and
 to manage named agents and named email inboxes.
 
-Each agent has a separate key for `POST /v1/cards`. Each inbox has a random address on
-`agentboxes.cc`. See [SECURITY.md](SECURITY.md) before you deploy the service.
+Each agent has a separate key for the MCP server and the `POST /v1/cards` HTTP fallback. Each inbox
+has a random address on `agentboxes.cc`. See [SECURITY.md](SECURITY.md) before you deploy the
+service.
 
 ## Repository structure
 
@@ -62,6 +63,10 @@ In another terminal, create an account and an agent:
 npm run cloudflare:account:create
 AGENT_BOX_ACCOUNT_KEY='YOUR_ACCOUNT_KEY' npm run cloudflare:agent:create -- 'Research agent'
 ```
+
+Connect an MCP client to `http://127.0.0.1:8787/mcp` with Streamable HTTP. Send the created agent
+key in the `Authorization: Bearer {agent_key}` header. The MCP server gives the agent tools to send
+cards, list feedback, and resolve feedback.
 
 Run all checks:
 

@@ -309,6 +309,13 @@ final class HistoryNavigationUITests: XCTestCase {
         XCTAssertFalse(app.buttons["dismiss-card"].exists)
         XCTAssertFalse(app.buttons["undo-card"].exists)
 
+        let history = app.buttons["empty-history-button"]
+        XCTAssertTrue(history.exists)
+        XCTAssertEqual(history.label, "View history")
+        history.tap()
+        XCTAssertTrue(app.navigationBars["History"].waitForExistence(timeout: 5))
+        app.buttons["history-done"].tap()
+
         let start = emptyDeck.coordinate(withNormalizedOffset: CGVector(dx: 0.25, dy: 0.4))
         let end = emptyDeck.coordinate(withNormalizedOffset: CGVector(dx: 0.75, dy: 0.65))
         start.press(forDuration: 0.2, thenDragTo: end)
@@ -491,6 +498,19 @@ final class HistoryNavigationUITests: XCTestCase {
         XCTAssertFalse(app.navigationBars["Change account key"].exists)
     }
 
+    func testSettingsOffersOnboardingReset() {
+        let app = XCUIApplication()
+        app.launchArguments.append("--ui-testing")
+        app.launch()
+
+        app.buttons["Settings"].tap()
+        XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
+
+        let reset = app.buttons["reset-onboarding"]
+        XCTAssertTrue(scrollToElement(reset, in: app))
+        XCTAssertTrue(reset.isEnabled)
+    }
+
     func testAgentsOpenFromTheDeckToolbar() {
         let app = XCUIApplication()
         app.launchArguments.append(contentsOf: ["--ui-testing", "--ui-testing-first-agent"])
@@ -504,7 +524,7 @@ final class HistoryNavigationUITests: XCTestCase {
         XCTAssertTrue(app.buttons["new-agent"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["new-inbox"].waitForExistence(timeout: 5))
         XCTAssertTrue(
-            app.staticTexts["Create a new API key to let an agent send cards."]
+            app.staticTexts["Create an agent to connect it through MCP and send cards."]
                 .waitForExistence(timeout: 5)
         )
     }
@@ -534,7 +554,12 @@ final class HistoryNavigationUITests: XCTestCase {
         let copyKey = app.buttons["copy-agent-api-key"]
         XCTAssertTrue(copyKey.waitForExistence(timeout: 5))
         copyKey.tap()
-        XCTAssertEqual(copyKey.label, "API key copied")
+        XCTAssertEqual(copyKey.label, "Agent key copied")
+
+        let copyMCPConnection = app.buttons["copy-new-agent-mcp-connection"]
+        XCTAssertTrue(scrollToElement(copyMCPConnection, in: app))
+        copyMCPConnection.tap()
+        XCTAssertEqual(copyMCPConnection.label, "MCP connection copied")
 
         let copyInstructions = app.buttons["copy-new-agent-instructions"]
         XCTAssertTrue(scrollToElement(copyInstructions, in: app))

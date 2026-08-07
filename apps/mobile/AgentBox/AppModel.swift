@@ -213,6 +213,10 @@ final class AppModel: ObservableObject {
         serviceURL?.appending(path: "v1/cards").absoluteString ?? "\(baseURLString)/v1/cards"
     }
 
+    var mcpURLString: String {
+        serviceURL?.appending(path: "mcp").absoluteString ?? "\(baseURLString)/mcp"
+    }
+
     var feedbackURLString: String {
         serviceURL?.appending(path: "v1/feedback").absoluteString
             ?? "\(baseURLString)/v1/feedback"
@@ -222,11 +226,32 @@ final class AppModel: ObservableObject {
         agentInstructions(agentKey: "YOUR_AGENT_KEY")
     }
 
+    func agentMCPConnection(agentKey: String) -> String {
+        """
+        Agent Box MCP
+        URL: \(mcpURLString)
+        Transport: Streamable HTTP
+        Authorization: Bearer \(agentKey)
+        """
+    }
+
     func agentInstructions(agentKey: String) -> String {
         var instructions = """
         When I ask, send a card to my Agent Box — a phone inbox for small, self-contained HTML pages that I read in seconds.
 
-        ## API
+        ## MCP
+
+        Use the Agent Box MCP connection at \(mcpURLString) with Streamable HTTP and this authorization header:
+
+        Authorization: Bearer \(agentKey)
+
+        - Use send_card to send cards. Use list_feedback before you create or improve cards, and use resolve_feedback after you address an item.
+        - Add a unique idempotency_key to send_card when you retry.
+        - After send_card, report whether it worked and include the returned card ID and show_at when present.
+
+        ## HTTP fallback
+
+        Use this only when MCP is not available:
 
         POST \(cardCreationURLString)
         Content-Type: application/json
@@ -241,7 +266,7 @@ final class AppModel: ObservableObject {
         - Front-load the title with the number and the verdict ("7 unread · 2 need a reply", not "Mail update"). The title is often all I read.
         - Schedule with show_at (ISO 8601 with offset) or show_in (relative, such as "2d"). Resolve phrases such as "Thursday morning" to an exact future time in my time zone.
         - expires_in defaults to 24h and counts from show_at on scheduled cards. expires_at and "never" also work.
-        - The same values can go in X-Card-Title, X-Card-Show-At, X-Card-Show-In, X-Card-Expires-In, and X-Card-Expires-At headers. Add a unique Idempotency-Key header when you retry.
+        - The same values can go in X-Card-Title, X-Card-Show-At, X-Card-Show-In, X-Card-Expires-In, and X-Card-Expires-At headers. Add a unique Idempotency-Key header when you retry the HTTP fallback.
         - After the request, report whether it worked and include the returned card ID and show_at when present.
 
         ## Content
@@ -259,8 +284,9 @@ final class AppModel: ObservableObject {
 
         ## Feedback
 
-        - Before you create or improve cards: GET \(feedbackURLString)?status=unresolved with this key. Each item has a feedback ID, my comment, and the card's HTML snapshot.
-        - After you address an item: POST \(feedbackURLString)/{feedback_id}/resolve.
+        - Prefer the MCP list_feedback and resolve_feedback tools.
+        - With the HTTP fallback, GET \(feedbackURLString)?status=unresolved before you create or improve cards. Each item has a feedback ID, my comment, and the card's HTML snapshot.
+        - With the HTTP fallback, POST \(feedbackURLString)/{feedback_id}/resolve after you address an item.
 
         ## Safety
 
@@ -855,6 +881,23 @@ final class AppModel: ObservableObject {
         } catch {
             errorMessage = error.localizedDescription
             return nil
+        }
+    }
+
+    func resetOnboarding() async -> Bool {
+        clearError()
+        if previewMode { return true }
+        guard let accountKey, let serviceURL else {
+            errorMessage = "Connect an account before you reset onboarding."
+            return false
+        }
+        do {
+            try await APIClient(baseURL: serviceURL, accountKey: accountKey).resetOnboarding()
+            _ = await sync(showErrors: true)
+            return errorMessage == nil
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
         }
     }
 

@@ -5,6 +5,13 @@ enum CardTimelineSection: String, CaseIterable, Identifiable {
     case upcoming = "Upcoming"
 
     var id: Self { self }
+
+    var systemImage: String {
+        switch self {
+        case .history: "list.bullet.rectangle.portrait"
+        case .upcoming: "calendar.badge.clock"
+        }
+    }
 }
 
 struct HistoryView: View {

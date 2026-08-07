@@ -7,6 +7,7 @@ struct SettingsView: View {
     @State private var showChangeKey = false
     @State private var showLogOutConfirmation = false
     @State private var showDeleteAccountConfirmation = false
+    @State private var isResettingOnboarding = false
 
     var body: some View {
         NavigationStack {
@@ -15,6 +16,7 @@ struct SettingsView: View {
                 primaryColorSection
                 cardDesignSection
                 feedbackSection
+                onboardingSection
                 serviceSection
                 accountSection
             }
@@ -154,6 +156,28 @@ struct SettingsView: View {
         }
     }
 
+    private var onboardingSection: some View {
+        Section {
+            Button {
+                resetOnboarding()
+            } label: {
+                HStack {
+                    Label("Reset onboarding", systemImage: "arrow.counterclockwise")
+                    Spacer()
+                    if isResettingOnboarding {
+                        ProgressView()
+                    }
+                }
+            }
+            .disabled(isResettingOnboarding || !model.hasAccountKey)
+            .accessibilityIdentifier("reset-onboarding")
+        } header: {
+            Text("Onboarding")
+        } footer: {
+            Text("Add the five introductory cards to your deck again.")
+        }
+    }
+
     private var accountSection: some View {
         Section {
             HStack {
@@ -192,6 +216,16 @@ struct SettingsView: View {
         dismiss()
         if serviceChanged {
             Task { await model.sync(showErrors: true) }
+        }
+    }
+
+    private func resetOnboarding() {
+        guard !isResettingOnboarding else { return }
+        isResettingOnboarding = true
+        Task {
+            let succeeded = await model.resetOnboarding()
+            isResettingOnboarding = false
+            if succeeded { dismiss() }
         }
     }
 
@@ -563,7 +597,7 @@ struct AgentsView: View {
                 Section {
                     if model.agents.isEmpty {
                         Label(
-                            "Create a new API key to let an agent send cards.",
+                            "Create an agent to connect it through MCP and send cards.",
                             systemImage: "key.fill"
                         )
                             .foregroundStyle(.secondary)
@@ -803,6 +837,7 @@ struct AgentCardsView: View {
     @State private var query = ""
     @State private var agentKey: String?
     @State private var isLoadingKey = false
+    @State private var copiedMCPConnection = false
     @State private var copiedInstructions = false
     @State private var showReplaceConfirmation = false
     @State private var searchIndex = CardSearchIndex()
@@ -823,6 +858,16 @@ struct AgentCardsView: View {
                         } label: {
                             Label("Copy agent key", systemImage: "doc.on.doc")
                         }
+                        Button {
+                            UIPasteboard.general.string = model.agentMCPConnection(agentKey: agentKey)
+                            copiedMCPConnection = true
+                        } label: {
+                            Label(
+                                copiedMCPConnection ? "MCP connection copied" : "Copy MCP connection",
+                                systemImage: copiedMCPConnection ? "checkmark" : "point.3.connected.trianglepath.dotted"
+                            )
+                        }
+                        .accessibilityIdentifier("copy-agent-mcp-connection")
                         Button {
                             UIPasteboard.general.string = model.agentInstructions(agentKey: agentKey)
                             copiedInstructions = true
@@ -963,6 +1008,7 @@ struct AgentCardsView: View {
         isLoadingKey = true
         defer { isLoadingKey = false }
         copiedInstructions = false
+        copiedMCPConnection = false
         agentKey = await model.revealAgentKey(agent)
     }
 
@@ -970,6 +1016,7 @@ struct AgentCardsView: View {
         isLoadingKey = true
         defer { isLoadingKey = false }
         copiedInstructions = false
+        copiedMCPConnection = false
         agentKey = await model.replaceAgentKey(agent)
     }
 
@@ -994,6 +1041,7 @@ struct NewAgentView: View {
     @State private var name = ""
     @State private var credential: AgentCredential?
     @State private var copiedKey = false
+    @State private var copiedMCPConnection = false
     @State private var copiedInstructions = false
     @State private var isCreating = false
     var body: some View {
@@ -1063,13 +1111,33 @@ struct NewAgentView: View {
                 UIPasteboard.general.string = credential.agentKey
                 copiedKey = true
             } label: {
-                Label(copiedKey ? "API key copied" : "Copy API key", systemImage: copiedKey ? "checkmark" : "key")
+                Label(copiedKey ? "Agent key copied" : "Copy agent key", systemImage: copiedKey ? "checkmark" : "key")
             }
             .accessibilityIdentifier("copy-agent-api-key")
         } header: {
-            Text("Private API key")
+            Text("Private agent key")
         } footer: {
             Text("You can view or replace this key later from the agent page.")
+        }
+
+        Section {
+            Text(model.mcpURLString)
+                .font(.system(.footnote, design: .monospaced))
+                .textSelection(.enabled)
+            Button {
+                UIPasteboard.general.string = model.agentMCPConnection(agentKey: credential.agentKey)
+                copiedMCPConnection = true
+            } label: {
+                Label(
+                    copiedMCPConnection ? "MCP connection copied" : "Copy MCP connection",
+                    systemImage: copiedMCPConnection ? "checkmark" : "point.3.connected.trianglepath.dotted"
+                )
+            }
+            .accessibilityIdentifier("copy-new-agent-mcp-connection")
+        } header: {
+            Text("MCP connection")
+        } footer: {
+            Text("Add this Streamable HTTP connection to an MCP client. It gives this agent card and feedback tools.")
         }
 
         Section {
