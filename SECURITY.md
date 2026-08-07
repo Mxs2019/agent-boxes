@@ -33,8 +33,10 @@ blocks JavaScript, frames, forms, objects, and connections made by scripts. It p
 A remote image can tell its server when the app loads it and can reveal network information such as
 the user's IP address.
 
-Push notifications use generic text. They do not put a card title or an agent name on the lock
-screen. The notification can contain a card identifier so that the app can open the correct card.
+Push notifications put the card title and a short plain-text preview on the lock screen. A grouped
+notification uses generic text. A notification can contain a card identifier so that the app can
+open the correct card. Users must control lock-screen preview access in the iOS notification
+settings when card content is sensitive.
 
 Deployers must enable rate limits and set `AGENT_KEY_ENCRYPTION_KEY` to 32 random bytes encoded as
 base64url. Do not put account keys or agent keys in card HTML, source code, logs, issues, or

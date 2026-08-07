@@ -86,7 +86,9 @@ to each current device, sets the current active-card badge count, and asks iOS t
 in the background. APNs keeps one collapsed notification for the app for up to one hour. The iOS app
 downloads all changes after its local cursor.
 
-The visible alert uses generic text. It does not show the card title or source on the lock screen.
+The visible alert shows the card title and a short plain-text preview on the lock screen. A grouped
+alert uses generic text. Users must control lock-screen preview access in the iOS notification
+settings when card content is sensitive.
 
 Enable Push Notifications for the `cc.agentboxes` App ID. Create an APNs authentication key in
 the Apple Developer portal. Record its Key ID and the Apple Team ID. Download its `.p8` private key

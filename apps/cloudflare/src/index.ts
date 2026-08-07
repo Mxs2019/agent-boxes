@@ -26,7 +26,7 @@ import {
   secureAssetResponse,
 } from "./http";
 import { createInbox, listInboxes, renameInbox, revokeInbox } from "./inboxes";
-import { handleCardUpdateBatch } from "./push";
+import { handleCardUpdateBatch, makePushPreview } from "./push";
 import type {
   AccountRow,
   CardRow,
@@ -138,6 +138,7 @@ async function handleCreateCard(request: Request, env: Env): Promise<Response> {
     await env.CARD_UPDATE_QUEUE.send({
       account_id: account.id,
       card_id: card.id,
+      preview: makePushPreview(card.plain_text),
       source_name: card.source_name,
       title: card.title,
     });
@@ -260,6 +261,7 @@ async function handleEmail(message: ForwardableEmailMessage, env: Env): Promise<
       await env.CARD_UPDATE_QUEUE.send({
         account_id: account.id,
         card_id: card.id,
+        preview: makePushPreview(card.plain_text),
         source_name: card.source_name,
         title: card.title,
       });

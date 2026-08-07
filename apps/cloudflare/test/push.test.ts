@@ -43,12 +43,13 @@ beforeAll(async () => {
 });
 
 describe("APNs delivery", () => {
-  it("does not put card details in the queued alert", () => {
+  it("puts the card title and a one-line preview in the queued alert", () => {
     const messages = [
       {
         body: {
           account_id: "account_push",
           card_id: "card_private",
+          preview: "First line.\n\nSecond   line.",
           source_name: "Private agent",
           title: "Private card title",
         },
@@ -56,10 +57,43 @@ describe("APNs delivery", () => {
     ] as unknown as Array<Message<CardUpdateMessage>>;
 
     expect(alertForMessages(messages)).toEqual({
-      body: "A new card is ready.",
+      body: "First line. Second line.",
       cardId: "card_private",
+      title: "Private card title",
+    });
+  });
+
+  it("uses generic text when an older queued message has no card text", () => {
+    const messages = [
+      {
+        body: {
+          account_id: "account_push",
+          card_id: "card_legacy",
+        },
+      },
+    ] as unknown as Array<Message<CardUpdateMessage>>;
+
+    expect(alertForMessages(messages)).toEqual({
+      body: "A new card is ready.",
+      cardId: "card_legacy",
       title: "Agent Box",
     });
+  });
+
+  it("truncates a long card preview", () => {
+    const messages = [
+      {
+        body: {
+          account_id: "account_push",
+          preview: "a".repeat(200),
+          title: "Long card",
+        },
+      },
+    ] as unknown as Array<Message<CardUpdateMessage>>;
+
+    const alert = alertForMessages(messages);
+    expect(alert.body).toHaveLength(160);
+    expect(alert.body.endsWith("…")).toBe(true);
   });
 
   it("sends a visible new-card alert with token authentication", async () => {

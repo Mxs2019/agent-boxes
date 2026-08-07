@@ -28,6 +28,9 @@ interface ProviderToken {
 }
 
 const cachedProviderTokens = new Map<string, ProviderToken>();
+const DEFAULT_PUSH_BODY = "A new card is ready.";
+const DEFAULT_PUSH_TITLE = "Agent Box";
+const PUSH_PREVIEW_LENGTH = 160;
 
 function log(event: string, fields: Record<string, unknown>): void {
   console.log(JSON.stringify({ event, ...fields }));
@@ -187,7 +190,7 @@ export async function sendAccountUpdate(
   accountId: string,
   send: typeof fetch = fetch,
   configurationOverride?: PushConfiguration,
-  alert: PushAlert = { body: "A new card is ready.", title: "Agent Box" },
+  alert: PushAlert = { body: DEFAULT_PUSH_BODY, title: DEFAULT_PUSH_TITLE },
 ): Promise<void> {
   const result = await env.DB.prepare(
     `SELECT id, account_id, apns_token, apns_environment, created_at, last_seen_at
@@ -237,19 +240,26 @@ export async function sendAccountUpdate(
   if (failures.length > 0) throw failures[0].reason;
 }
 
+export function makePushPreview(value: string | undefined): string {
+  const clean = value?.replaceAll(/\s+/g, " ").trim();
+  if (!clean) return DEFAULT_PUSH_BODY;
+  if (clean.length <= PUSH_PREVIEW_LENGTH) return clean;
+  return `${clean.slice(0, PUSH_PREVIEW_LENGTH - 1).trimEnd()}…`;
+}
+
 export function alertForMessages(messages: Array<Message<CardUpdateMessage>>): PushAlert {
   if (messages.length > 1) {
     return {
       body: `${messages.length} new cards are ready.`,
-      title: "Agent Box",
+      title: DEFAULT_PUSH_TITLE,
     };
   }
 
   const card = messages[0]?.body;
   return {
-    body: "A new card is ready.",
+    body: makePushPreview(card?.preview),
     cardId: card?.card_id,
-    title: "Agent Box",
+    title: card?.title?.trim() || DEFAULT_PUSH_TITLE,
   };
 }
 

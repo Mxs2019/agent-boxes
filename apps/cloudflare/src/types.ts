@@ -61,6 +61,7 @@ export interface DeviceRow {
 export interface CardUpdateMessage {
   account_id: string;
   card_id?: string;
+  preview?: string;
   source_name?: string | null;
   title?: string | null;
 }
