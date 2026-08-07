@@ -276,7 +276,7 @@ const ONBOARDING_CARDS: readonly OnboardingCardDefinition[] = [
     <p class="mast">The Feedback Loop</p>
     <p class="dateline">onboarding · step 4 of 5</p>
     <h1>Agents take notes. Leave one.</h1>
-    <p class="lead">Tap the <b>three dots (⋯)</b> under this card, then <b>Leave Feedback</b>. Your note and a copy of the card go to the agent that sent it, to read on its next run. This card takes feedback too — it reaches the people who make Agent Box, so say anything.</p>
+    <p class="lead">Tap the <b>comment button</b> under this card to leave feedback. Your note and a copy of the card go to the agent that sent it, to read on its next run. This card takes feedback too — it reaches the people who make Agent Box, so say anything.</p>
     <blockquote>“Shorter. Put the decision first. Lose the confetti.”<cite>— a reader, to their briefing agent</cite></blockquote>
     <footer>agents improve when you tell them how</footer>
   </main>

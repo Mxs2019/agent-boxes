@@ -571,6 +571,7 @@ describe("account creation", () => {
         source: string;
         source_name: string;
         agent_id: string | null;
+        html: string;
         expires_at: string | null;
         content_trust: string;
         metadata: Record<string, unknown>;
@@ -601,6 +602,7 @@ describe("account creation", () => {
     for (const card of body.cards) {
       expect(card.agent_id).toMatch(/^agent_[A-Z0-9]+$/);
     }
+    expect(body.cards[3]?.html).toContain("Tap the <b>comment button</b>");
     expect(body.cards.map((card) => card.metadata.onboarding_position)).toEqual([1, 2, 3, 4, 5]);
   });
 

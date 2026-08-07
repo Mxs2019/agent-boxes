@@ -141,14 +141,11 @@ final class HistoryNavigationUITests: XCTestCase {
         app.launchArguments.append("--ui-testing")
         app.launch()
 
-        let moreActions = app.buttons["more-card-actions"]
-        XCTAssertTrue(moreActions.waitForExistence(timeout: 5))
-        XCTAssertLessThan(moreActions.frame.midX, app.buttons["snooze-card"].frame.midX)
-        moreActions.tap()
-
-        let leaveFeedback = app.buttons["Leave Feedback"]
-        XCTAssertTrue(leaveFeedback.waitForExistence(timeout: 5))
-        leaveFeedback.tap()
+        let feedback = app.buttons["feedback-card"]
+        XCTAssertTrue(feedback.waitForExistence(timeout: 5))
+        XCTAssertEqual(feedback.label, "Leave Feedback")
+        XCTAssertLessThan(feedback.frame.midX, app.buttons["snooze-card"].frame.midX)
+        feedback.tap()
 
         XCTAssertTrue(app.navigationBars["Leave Feedback"].waitForExistence(timeout: 5))
         let continueButton = app.buttons["Continue"]

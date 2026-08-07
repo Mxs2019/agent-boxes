@@ -430,7 +430,7 @@ private struct FeedbackListView: View {
             ContentUnavailableView(
                 "No feedback",
                 systemImage: "text.bubble",
-                description: Text("Use a card menu to send feedback to its agent.")
+                description: Text("Use a card's comment button to send feedback to its agent.")
             )
         }
     }

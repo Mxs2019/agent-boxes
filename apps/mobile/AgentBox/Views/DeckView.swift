@@ -27,7 +27,7 @@ struct DeckView: View {
     @State private var snoozeSnapshotCardID: String?
     @State private var snoozeSnapshotRequestID: UUID?
     @State private var snoozeContentSnapshot: UIImage?
-    @State private var contentSnapshots: [String: UIImage] = [:]
+    @State private var contentSnapshotCache = ContentSnapshotCache()
     @State private var contentSnapshotRequestIDs: [String: UUID] = [:]
     @State private var pendingSnoozeDate: Date?
     @State private var showsEmptyDeckContent = false
@@ -237,22 +237,16 @@ struct DeckView: View {
 
     private func actionButtons(in size: CGSize, usesLiquidGlass: Bool) -> some View {
         HStack(spacing: 12) {
-            Menu {
-                if let card = presentedCards.first, card.agentID != nil {
-                    Button("Leave Feedback", systemImage: "text.bubble") {
-                        presentFeedback(for: card)
-                    }
-                } else {
-                    Button("No agent feedback", systemImage: "text.bubble") {}
-                        .disabled(true)
-                }
+            Button {
+                guard let card = feedbackTargetCard else { return }
+                UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                feedbackCard = card
             } label: {
-                Image(systemName: "ellipsis")
+                Image(systemName: "bubble.left")
                     .font(.body.weight(.semibold))
                     .frame(width: 54, height: 54)
                     .contentShape(Circle())
             }
-            .menuStyle(.button)
             .buttonStyle(.plain)
             .modifier(
                 DeckActionMaterial(
@@ -261,9 +255,12 @@ struct DeckView: View {
                     foreground: .primary
                 )
             )
-            .disabled(isClearing)
-            .accessibilityLabel("More card actions")
-            .accessibilityIdentifier("more-card-actions")
+            .disabled(isClearing || feedbackTargetCard == nil)
+            .accessibilityLabel(
+                feedbackTargetCard == nil ? "No agent feedback" : "Leave Feedback"
+            )
+            .accessibilityHint("Opens the feedback form for this card.")
+            .accessibilityIdentifier("feedback-card")
 
             Menu {
                 Button("1 day") { snoozeCurrent(days: 1) }
@@ -346,12 +343,9 @@ struct DeckView: View {
         .padding(.bottom, 12)
     }
 
-    private func presentFeedback(for card: Card) {
-        Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(150))
-            guard !Task.isCancelled else { return }
-            feedbackCard = card
-        }
+    private var feedbackTargetCard: Card? {
+        guard let card = presentedCards.first, card.agentID != nil else { return nil }
+        return card
     }
 
     private func dismissGesture(in size: CGSize) -> some Gesture {
@@ -571,6 +565,7 @@ struct DeckView: View {
                     return
                 }
 
+                let didPlayThresholdHaptic = didCrossDismissThreshold
                 swipeIntent = .undecided
                 didCrossDismissThreshold = false
 
@@ -580,7 +575,12 @@ struct DeckView: View {
                     let exitVector = projectedDistance > translationDistance
                         ? value.predictedEndTranslation
                         : value.translation
-                    clear(card, toward: exitVector, in: size)
+                    clear(
+                        card,
+                        toward: exitVector,
+                        in: size,
+                        playsHaptic: !didPlayThresholdHaptic
+                    )
                 } else {
                     withAnimation(
                         .spring(response: 0.34, dampingFraction: 0.76, blendDuration: 0.08)
@@ -622,7 +622,7 @@ struct DeckView: View {
         let departures = visibleCards.enumerated().map { index, card in
             DepartingCard(
                 card: card,
-                contentSnapshot: contentSnapshots[card.id],
+                contentSnapshot: contentSnapshotCache.images[card.id],
                 scale: stackScale(at: index, progress: 0),
                 stackOffset: stackOffset(at: index, progress: 0),
                 offset: .zero,
@@ -709,22 +709,24 @@ struct DeckView: View {
     ) {
         if snoozeSnapshotCardID == card.id, snoozeSnapshotRequestID == requestID {
             if let image {
-                contentSnapshots[card.id] = image
+                contentSnapshotCache.images[card.id] = image
             }
             finishSnoozeSnapshot(image, for: card, requestID: requestID)
             return
         }
 
         guard contentSnapshotRequestIDs[card.id] == requestID else { return }
-        contentSnapshotRequestIDs[card.id] = nil
         if let image {
-            contentSnapshots[card.id] = image
+            contentSnapshotCache.images[card.id] = image
+        } else {
+            contentSnapshotRequestIDs[card.id] = nil
         }
     }
 
     private func prepareContentSnapshots() {
         for cardID in snapshotTargetCardIDs
-        where contentSnapshots[cardID] == nil && contentSnapshotRequestIDs[cardID] == nil {
+        where contentSnapshotCache.images[cardID] == nil
+            && contentSnapshotRequestIDs[cardID] == nil {
             contentSnapshotRequestIDs[cardID] = UUID()
         }
         discardUnusedContentSnapshots()
@@ -736,7 +738,9 @@ struct DeckView: View {
         if let snoozeSnapshotCardID {
             retainedCardIDs.insert(snoozeSnapshotCardID)
         }
-        contentSnapshots = contentSnapshots.filter { retainedCardIDs.contains($0.key) }
+        contentSnapshotCache.images = contentSnapshotCache.images.filter {
+            retainedCardIDs.contains($0.key)
+        }
         contentSnapshotRequestIDs = contentSnapshotRequestIDs.filter {
             retainedCardIDs.contains($0.key)
         }
@@ -780,9 +784,16 @@ struct DeckView: View {
         }
     }
 
-    private func clear(_ card: Card, toward vector: CGSize, in size: CGSize) {
+    private func clear(
+        _ card: Card,
+        toward vector: CGSize,
+        in size: CGSize,
+        playsHaptic: Bool = true
+    ) {
         guard !isClearing else { return }
-        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+        if playsHaptic {
+            UIImpactFeedbackGenerator(style: .soft).impactOccurred(intensity: 0.55)
+        }
 
         let stackProgress = stackProgress(in: size.width)
         let distance = max(hypot(size.width, size.height) * 1.25, 600)
@@ -794,7 +805,7 @@ struct DeckView: View {
         let duration = reduceMotion ? 0.01 : 0.42
         let departure = DepartingCard(
             card: card,
-            contentSnapshot: contentSnapshots[card.id],
+            contentSnapshot: contentSnapshotCache.images[card.id],
             scale: 1,
             stackOffset: 0,
             offset: dragOffset,
@@ -959,6 +970,10 @@ struct DeckView: View {
         didCrossDismissThreshold = false
         swipeIntent = .undecided
     }
+}
+
+private final class ContentSnapshotCache {
+    var images: [String: UIImage] = [:]
 }
 
 private struct DepartingCard: Identifiable {

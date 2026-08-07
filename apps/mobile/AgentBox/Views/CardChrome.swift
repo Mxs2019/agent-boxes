@@ -49,7 +49,11 @@ struct CardChrome: View {
             RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
         }
-        .shadow(color: .black.opacity(0.12), radius: 18, y: 8)
+        .background {
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(AppThemeColor.cardBackgroundColor)
+                .shadow(color: .black.opacity(0.12), radius: 18, y: 8)
+        }
     }
 
     private var sourceLine: String {
