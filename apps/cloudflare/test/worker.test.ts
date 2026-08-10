@@ -153,7 +153,10 @@ describe("agent MCP server", () => {
     expect(initialized.status).toBe(200);
     expect(initialized.headers.get("content-type")).toContain("application/json");
     expect(initialized.headers.get("mcp-session-id")).toBeNull();
-    expect(await initialized.json()).toMatchObject({
+    const initializedBody = await initialized.json<{
+      result: { instructions: string };
+    }>();
+    expect(initializedBody).toMatchObject({
       jsonrpc: "2.0",
       id: 1,
       result: {
@@ -162,6 +165,16 @@ describe("agent MCP server", () => {
         serverInfo: { name: "agent-box" },
       },
     });
+    expect(initializedBody.result.instructions).toContain(
+      "use list_feedback to read unresolved user comments",
+    );
+    expect(initializedBody.result.instructions).toContain(
+      "After you address a feedback item, use resolve_feedback",
+    );
+    expect(initializedBody.result.instructions).toContain(
+      "tell the user whether the send succeeded",
+    );
+    expect(initializedBody.result.instructions).toContain("returned card ID and show_at");
 
     const notification = await mcp(
       { jsonrpc: "2.0", method: "notifications/initialized" },

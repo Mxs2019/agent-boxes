@@ -790,7 +790,7 @@ async function handleAgentMcp(request: Request, env: Env): Promise<Response> {
       await authenticate();
     },
     instructions:
-      "Use send_card to deliver self-contained HTML cards. Use list_feedback and resolve_feedback to act on user comments for cards from this agent.",
+      "Use send_card to deliver self-contained HTML cards. Before you create or improve a card, use list_feedback to read unresolved user comments. After you address a feedback item, use resolve_feedback. After send_card, tell the user whether the send succeeded. Include the returned card ID and show_at when it is present.",
     invokeTool: async (name, argumentsValue) => {
       const { account, agent } = await authenticate();
       return invokeAgentMcpTool(request, env, account, agent, name, argumentsValue);
